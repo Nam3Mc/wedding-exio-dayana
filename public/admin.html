@@ -751,11 +751,30 @@
                 }
 
                 if (!response.ok) {
-                    const error = new Error(
-                        data.error || `La solicitud falló con estado ${response.status}.`
-                    );
+                    const apiError = data?.error;
+                    let message = '';
+
+                    if (typeof apiError === 'string') {
+                        message = apiError;
+                    } else if (
+                        apiError &&
+                        typeof apiError === 'object' &&
+                        typeof apiError.message === 'string'
+                    ) {
+                        message = apiError.message;
+                    } else if (typeof data?.message === 'string') {
+                        message = data.message;
+                    } else if (response.status === 404) {
+                        message =
+                            'La API de Express no está disponible en este deployment. ' +
+                            'Verifica el Root Directory, el preset Express y que Output Directory esté vacío.';
+                    } else {
+                        message = `La solicitud falló con estado ${response.status}.`;
+                    }
+
+                    const error = new Error(message);
                     error.status = response.status;
-                    error.details = data.details;
+                    error.details = data?.details;
                     throw error;
                 }
 
