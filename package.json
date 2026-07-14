@@ -6,7 +6,7 @@
     "description": "Sistema de invitaciones para la boda de Dayana y Exio",
     "main": "index.js",
     "engines": {
-        "node": "20.x"
+        "node": "24.x"
     },
     "scripts": {
         "dev": "nodemon index.js",

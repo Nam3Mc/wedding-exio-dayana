@@ -1,9 +1,14 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
+    "framework": "express",
     "rewrites": [
         {
             "source": "/",
-            "destination": "/admin.html"
+            "destination": "/index.html"
+        },
+        {
+            "source": "/admin",
+            "destination": "/index.html"
         },
         {
             "source": "/invitation/:uuid",

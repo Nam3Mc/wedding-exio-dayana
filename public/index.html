@@ -748,9 +748,23 @@
                 }
 
                 if (!response.ok) {
-                    const error = new Error(
-                        data.error || `La solicitud falló con estado ${response.status}`
-                    );
+                    let message = `La solicitud falló con estado ${response.status}`;
+
+                    if (typeof data.error === 'string' && data.error.trim()) {
+                        message = data.error;
+                    } else if (
+                        data.error
+                        && typeof data.error.message === 'string'
+                        && data.error.message.trim()
+                    ) {
+                        message = data.error.message;
+                    } else if (typeof data.message === 'string' && data.message.trim()) {
+                        message = data.message;
+                    } else if (response.status === 404) {
+                        message = 'La ruta solicitada no existe en el deployment de Vercel';
+                    }
+
+                    const error = new Error(message);
                     error.status = response.status;
                     throw error;
                 }

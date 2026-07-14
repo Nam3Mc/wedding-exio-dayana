@@ -1,79 +1,40 @@
-# Boda Dayana & Exio
+# Wedding Exio Dayana — Vercel final
 
-Aplicación Express para crear, copiar, consultar, responder y eliminar invitaciones de boda.
+## Estructura obligatoria
 
-## Estructura
+No debe existir una carpeta `/api` en este proyecto. Vercel reserva `/api` para Vercel Functions. Los módulos internos de Express están en `/server`.
 
 ```text
-boda-backend/
-├── api/
+/
+├── server/
 │   ├── routes/
 │   │   ├── admin.js
 │   │   └── public.js
 │   ├── auth.js
 │   └── db.js
 ├── public/
+│   ├── index.html
 │   ├── admin.html
 │   └── invitation.html
-├── .env.example
-├── .gitignore
 ├── index.js
 ├── package.json
 ├── package-lock.json
-└── vercel.json
+├── vercel.json
+└── schema-neon.sql
 ```
 
-## Desarrollo local
+## Variables en Vercel
 
-1. Copia `.env.example` como `.env`.
-2. Completa las variables con valores reales.
-3. Instala y ejecuta:
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `ADMIN_PASSWORD`
+- `ADMIN_SESSION_HOURS` (opcional, por defecto 8)
+- `DB_POOL_MAX` (opcional, por defecto 5)
 
-```bash
-npm ci
-npm run dev
-```
+No agregues `PORT` ni `NODE_ENV` en Vercel.
 
-Abre `http://localhost:3000`.
+## Pruebas después del deployment
 
-## Variables necesarias en Vercel
-
-Configura estas variables en **Project → Settings → Environment Variables**:
-
-```text
-DATABASE_URL
-JWT_SECRET
-ADMIN_PASSWORD
-ADMIN_SESSION_HOURS
-DB_POOL_MAX
-```
-
-No configures `PORT` ni `NODE_ENV` manualmente en Vercel.
-
-Después de cambiar variables, crea un deployment nuevo.
-
-## Rutas importantes
-
-```text
-GET  /api/health
-POST /api/auth/login
-GET  /api/invitations
-POST /api/invitations
-DELETE /api/invitations/:id
-GET  /api/public/invitation/:uuid
-POST /api/public/respond
-```
-
-## Comprobación
-
-```bash
-npm run check
-```
-
-Después del deployment verifica:
-
-```text
-https://TU-DOMINIO.vercel.app/api/health
-```
-
-Debe responder con `ok: true` y `database: connected`.
+- `/` debe mostrar el panel.
+- `/api/health` debe responder JSON.
+- `/api/auth/login` debe aceptar POST.

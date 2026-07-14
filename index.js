@@ -5,10 +5,10 @@ import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
-import pool from './api/db.js';
-import authMiddleware from './api/auth.js';
-import createAdminRoutes from './api/routes/admin.js';
-import createPublicRoutes from './api/routes/public.js';
+import pool from './server/db.js';
+import authMiddleware from './server/auth.js';
+import createAdminRoutes from './server/routes/admin.js';
+import createPublicRoutes from './server/routes/public.js';
 
 dotenv.config();
 
