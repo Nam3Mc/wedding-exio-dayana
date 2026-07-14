@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitación · Dayana & Exio</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Playfair+Display:ital,wght@0,400;0,700;1,700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        /* ===================== RESET Y VARIABLES ===================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --verde-oscuro: #1B4D3E;
+            --verde-salvia: #A3C6B4;
+            --beige-claro: #F7F3EB;
+            --blanco: #FFFFFF;
+            --azul-marino: #1C2E3A;
+            --azul-cielo: #4A90E2;
+            --dorado: #C9A84C;
+            --dorado-oscuro: #b8953e;
+            --sombra-fuerte: 0 12px 40px rgba(0, 0, 0, 0.2);
+            --sombra-suave: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --radio-borde: 28px;
+            --font-cursiva: 'Parisienne', cursive;
+            --font-serif: 'Playfair Display', serif;
+            --font-sans: 'Poppins', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--beige-claro);
+            color: var(--azul-marino);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        /* ===================== TOAST ===================== */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 360px;
+            width: 100%;
+        }
+        .toast {
+            background: var(--azul-marino);
+            color: var(--blanco);
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            box-shadow: var(--sombra-fuerte);
+            transform: translateX(120%);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 5px solid var(--azul-cielo);
+        }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast.success { border-left-color: var(--verde-salvia); }
+        .toast.error { border-left-color: #c0392b; }
+        .toast.info { border-left-color: var(--azul-cielo); }
+
+        /* ===================== LOADER ===================== */
+        .loader {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 1.2rem;
+            color: var(--verde-oscuro);
+        }
+        .loader i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* ===================== SOBRE MODAL ===================== */
+        .sobre-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(28, 46, 58, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            transition: opacity 0.6s ease;
+            cursor: pointer;
+            padding: 20px;
+        }
+        .sobre-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sobre {
+            width: min(80%, 540px);
+            height: min(60vh, 420px);
+            border-radius: var(--radio-borde);
+            box-shadow: var(--sombra-fuerte);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 25px;
+            text-align: center;
+            border: 3px solid var(--dorado);
+            position: relative;
+            overflow: hidden;
+            background-image: url('https://torrealbaexio-prog.github.io/invitacion-boda/sobre.jpg');
+            background-size: cover;
+            background-position: center;
+            background-color: var(--blanco);
+        }
+        .sobre::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .sobre > * { position: relative; z-index: 2; }
+        .sobre:hover { transform: scale(1.04) rotate(1deg); }
+
+        .sobre h2 {
+            font-family: var(--font-cursiva);
+            font-size: 2.8rem;
+            color: var(--blanco);
+            text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            margin-bottom: 4px;
+            letter-spacing: 2px;
+        }
+        .sobre p {
+            font-size: 1.1rem;
+            color: var(--blanco);
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            margin-top: 6px;
+            font-weight: 300;
+        }
+        .sobre .flecha {
+            font-size: 2rem;
+            margin-top: 16px;
+            color: var(--dorado);
+            animation: bounce 1.5s infinite;
+            background: rgba(255,255,255,0.2);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+
+        /* ===================== INVITACIÓN ===================== */
+        .invitacion-container {
+            display: none;
+            max-width: 860px;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--blanco);
+            border-radius: 36px;
+            box-shadow: var(--sombra-fuerte);
+            overflow: hidden;
+            position: relative;
+        }
+        .invitacion-container.active { display: block; }
+
+        .marco-invitacion {
+            padding: 45px 40px;
+            position: relative;
+        }
+
+        .divisor-dorado {
+            width: 60%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--dorado), transparent);
+            margin: 35px auto;
+            opacity: 0.7;
+            border-radius: 3px;
+        }
+
+        /* ===================== BLOQUES ===================== */
+        .bloque-seccion { padding: 20px 0; }
+        .bloque-oscuro {
+            background: var(--verde-oscuro);
+            color: var(--blanco);
+            margin: 0 -40px;
+            padding: 35px 40px;
+            position: relative;
+        }
+        .bloque-oscuro::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--dorado), transparent);
+        }
+        .bloque-claro {
+            background: transparent;
+            color: var(--azul-marino);
+        }
+        .bloque-oscuro .subtitulo-elegante,
+        .bloque-oscuro .fecha-texto { color: var(--dorado); }
+
+        /* ===================== FOTOS Y NOMBRES ===================== */
+        .contenedor-foto { text-align: center; margin-bottom: 20px; }
+        .foto-boda {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--dorado);
+            box-shadow: var(--sombra-fuerte);
+            transition: transform 0.3s;
+        }
+        .foto-boda:hover { transform: scale(1.02); }
+
+        .nombres-novios {
+            font-family: var(--font-cursiva);
+            font-size: 3.5rem;
+            text-align: center;
+            line-height: 1.2;
+            color: var(--dorado);
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .ampersand {
+            font-family: var(--font-cursiva);
+            font-size: 2.8rem;
+            text-align: center;
+            color: var(--dorado);
+            opacity: 0.8;
+        }
+
+        .texto-invitado {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 15px;
+            color: var(--azul-marino);
+        }
+        .texto-invitado span {
+            color: var(--verde-oscuro);
+            font-weight: 700;
+        }
+
+        .versiculo {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 1.15rem;
+            text-align: center;
+            color: var(--verde-oscuro);
+            opacity: 0.95;
+            padding: 12px 20px;
+            background: rgba(163, 198, 180, 0.15);
+            border-radius: 16px;
+            border-left: 4px solid var(--dorado);
+            margin: 0 10px;
+        }
+        .cita-versiculo {
+            display: block;
+            font-size: 0.95rem;
+            font-style: normal;
+            font-weight: 300;
+            margin-top: 8px;
+            opacity: 0.7;
+            color: var(--azul-marino);
+        }
+
+        .introduccion-texto {
+            font-weight: 300;
+            text-align: center;
+            font-size: 1.05rem;
+            margin: 18px 0 12px;
+            line-height: 1.7;
+        }
+
+        .lista-pases-contenedor {
+            display: flex;
+            justify-content: center;
+            margin: 14px 0;
+        }
+        #lista-pases-dinamica {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            justify-content: center;
+            padding: 0;
+        }
+        .pase-item {
+            background: var(--beige-claro);
+            padding: 6px 22px;
+            border-radius: 40px;
+            font-weight: 400;
+            font-size: 1rem;
+            border: 1px solid var(--verde-salvia);
+            color: var(--azul-marino);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        .nota-aclaratoria {
+            font-size: 0.85rem;
+            text-align: center;
+            opacity: 0.6;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        /* ===================== CONTADOR ===================== */
+        .subtitulo-elegante {
+            font-family: var(--font-serif);
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--dorado);
+            margin-bottom: 14px;
+            font-weight: 700;
+        }
+        .subtitulo-elegante.cursivo {
+            text-transform: none;
+            font-style: italic;
+            font-family: var(--font-cursiva);
+            font-size: 2.2rem;
+            color: var(--verde-oscuro);
+        }
+        .fecha-texto {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            text-align: center;
+            color: var(--dorado);
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .contador-display {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        .unidad-tiempo {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.12);
+            padding: 10px 20px;
+            border-radius: 16px;
+            min-width: 80px;
+            backdrop-filter: blur(2px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .unidad-tiempo .numero {
+            font-family: var(--font-serif);
+            font-size: 2.2rem;
+            font-weight: 700;
+            display: block;
+            color: var(--dorado);
+        }
+        .unidad-tiempo .etiqueta {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.8;
+            color: var(--blanco);
+        }
+
+        /* ===================== BOTONES ===================== */
+        .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.25s;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            letter-spacing: 0.5px;
+            box-shadow: var(--sombra-suave);
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--sombra-fuerte);
+        }
+        .btn-maps {
+            background: var(--azul-cielo);
+            color: var(--blanco);
+        }
+        .btn-maps:hover { background: #357abd; }
+        .btn-waze {
+            background: #1c8c3c;
+            color: var(--blanco);
+        }
+        .btn-waze:hover { background: #156b2e; }
+        .btn-transmision {
+            background: #c0392b;
+            color: var(--blanco);
+        }
+        .btn-transmision:hover { background: #a93226; }
+        .btn-confirmar {
+            background: var(--verde-oscuro);
+            color: var(--blanco);
+            font-size: 1.05rem;
+            padding: 16px 48px;
+            box-shadow: 0 6px 20px rgba(27, 77, 62, 0.35);
+        }
+        .btn-confirmar:hover {
+            background: #143a2e;
+            transform: translateY(-3px);
+        }
+        .btn-confirmar:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-calendario {
+            background: var(--dorado);
+            color: var(--azul-marino);
+            box-shadow: 0 6px 20px rgba(201, 168, 76, 0.4);
+            font-size: 1.05rem;
+            padding: 14px 40px;
+        }
+        .btn-calendario:hover {
+            background: var(--dorado-oscuro);
+            transform: translateY(-3px);
+        }
+        .btn-no-asistir {
+            background: #b0b0b0;
+            color: var(--blanco);
+            font-size: 1.05rem;
+            padding: 16px 48px;
+        }
+        .btn-no-asistir:hover {
+            background: #8f8f8f;
+            transform: translateY(-3px);
+        }
+        .grupo-mapas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        /* ===================== DRESS CODE ===================== */
+        .aviso-colores {
+            text-align: center;
+            font-weight: 300;
+            font-size: 1rem;
+            margin-bottom: 18px;
+        }
+        .colores-prohibidos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 18px 32px;
+        }
+        .item-color {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 400;
+            font-size: 1rem;
+        }
+        .circulo-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            box-shadow: var(--sombra-suave);
+        }
+        .circulo-color.blanco { background: #FFFFFF; }
+        .circulo-color.verde { background: #A3C6B4; }
+        .circulo-color.beige { background: #D3C4B0; }
+        .circulo-color.azul { background: #4A90E2; }
+
+        /* ===================== BOTONES DE CONFIRMACIÓN PRINCIPALES ===================== */
+        .botones-confirmacion {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .botones-confirmacion .btn {
+            min-width: 200px;
+        }
+
+        /* ===================== MODAL FLOTANTE DE CONFIRMACIÓN ===================== */
+        .modal-confirmacion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(28, 46, 58, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+        }
+        .modal-confirmacion-overlay.activo {
+            display: flex;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        .modal-confirmacion {
+            background: var(--blanco);
+            border-radius: 32px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 35px 30px;
+            box-shadow: var(--sombra-fuerte);
+            position: relative;
+            text-align: center;
+        }
+        .modal-confirmacion .cerrar-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--azul-marino);
+            opacity: 0.4;
+            transition: opacity 0.2s;
+            background: none;
+            border: none;
+        }
+        .modal-confirmacion .cerrar-modal:hover { opacity: 1; }
+
+        .modal-confirmacion .icono-agradecimiento {
+            font-size: 4rem;
+            color: var(--dorado);
+            margin-bottom: 10px;
+        }
+        .modal-confirmacion h2 {
+            font-family: var(--font-serif);
+            color: var(--verde-oscuro);
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .modal-confirmacion .mensaje-agradecimiento {
+            font-size: 1.1rem;
+            font-weight: 300;
+            color: var(--azul-marino);
+            margin-bottom: 20px;
+        }
+        .modal-confirmacion .instruccion {
+            font-weight: 400;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+        .modal-confirmacion .lista-checkboxes {
+            background: var(--beige-claro);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .modal-confirmacion .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .modal-confirmacion .checkbox-item:last-child { border-bottom: none; }
+        .modal-confirmacion .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--verde-oscuro);
+            cursor: pointer;
+        }
+        .modal-confirmacion .checkbox-item label {
+            font-size: 1rem;
+            cursor: pointer;
+            flex: 1;
+            color: var(--azul-marino);
+        }
+        .modal-confirmacion .checkbox-item .nombre-principal { font-weight: 700; }
+
+        .modal-confirmacion .acciones-modal {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        /* ===================== MENSAJE YA CONFIRMADO ===================== */
+        .ya-confirmado {
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .ya-confirmado i {
+            font-size: 3.5rem;
+            color: var(--verde-salvia);
+            margin-bottom: 12px;
+            display: block;
+        }
+        .ya-confirmado h3 {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            color: var(--verde-oscuro);
+        }
+        .ya-confirmado p {
+            font-size: 1.05rem;
+            opacity: 0.7;
+            margin-top: 8px;
+        }
+        .ya-confirmado .btn-calendario {
+            margin-top: 20px;
+        }
+
+        /* ===================== EXPIRADO ===================== */
+        .expirado {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .expirado i {
+            font-size: 4rem;
+            color: #c0392b;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .expirado h2 {
+            font-family: var(--font-serif);
+            color: var(--azul-marino);
+            font-size: 2rem;
+        }
+        .expirado p {
+            opacity: 0.6;
+            margin-top: 8px;
+            font-size: 1.1rem;
+        }
+
+        /* ===================== RESPONSIVE ===================== */
+        @media (max-width: 700px) {
+            .marco-invitacion { padding: 25px 18px; }
+            .bloque-oscuro {
+                margin: 0 -18px;
+                padding: 25px 18px;
+            }
+            .nombres-novios { font-size: 2.8rem; }
+            .texto-invitado { font-size: 1.6rem; }
+            .foto-boda { width: 140px; height: 140px; }
+            .contador-display { gap: 12px; }
+            .unidad-tiempo { min-width: 60px; padding: 8px 14px; }
+            .unidad-tiempo .numero { font-size: 1.8rem; }
+            .botones-confirmacion { flex-direction: column; align-items: center; }
+            .botones-confirmacion .btn { width: 100%; max-width: 300px; }
+            .sobre { width: 90%; height: 55vh; max-height: 380px; }
+            .sobre h2 { font-size: 2.2rem; }
+            .grupo-mapas { flex-direction: column; align-items: center; }
+            .grupo-mapas .btn { width: 100%; max-width: 300px; }
+            .modal-confirmacion { padding: 25px 18px; }
+        }
+        @media (max-width: 480px) {
+            .invitacion-container { border-radius: 24px; }
+            .marco-invitacion { padding: 18px 12px; }
+            .bloque-oscuro {
+                margin: 0 -12px;
+                padding: 20px 12px;
+            }
+            .foto-boda { width: 110px; height: 110px; }
+            .nombres-novios { font-size: 2.2rem; }
+            .texto-invitado { font-size: 1.3rem; }
+            .sobre { width: 95%; height: 50vh; max-height: 340px; padding: 20px 15px; }
+            .sobre h2 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===================== TOAST ===================== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===================== LOADER ===================== -->
+    <div id="loaderInicial" class="loader">
+        <i class="fas fa-spinner"></i>
+        Cargando invitación...
+    </div>
+
+    <!-- ===================== SOBRE MODAL ===================== -->
+    <div class="sobre-overlay" id="sobreOverlay">
+        <div class="sobre" id="sobreBtn">
+            <h2>Dayana & Exio</h2>
+            <p>Toca para abrir tu invitación</p>
+            <div class="flecha"><i class="fas fa-chevron-down"></i></div>
+        </div>
+    </div>
+
+    <!-- ===================== INVITACIÓN ===================== -->
+    <div class="invitacion-container" id="invitacionContainer">
+        <div class="marco-invitacion" id="marcoInvitacion">
+            <div id="invitacionContent"></div>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL FLOTANTE DE CONFIRMACIÓN ===================== -->
+    <div class="modal-confirmacion-overlay" id="modalConfirmacion">
+        <div class="modal-confirmacion">
+            <button class="cerrar-modal" id="cerrarModalConfirmacion">&times;</button>
+            <div class="icono-agradecimiento"><i class="fas fa-heart"></i></div>
+            <h2>¡Gracias por confirmar!</h2>
+            <p class="mensaje-agradecimiento">Nos llena de alegría que nos acompañes en este día especial.</p>
+            <p class="instruccion">Selecciona quiénes de tu grupo asistirán:</p>
+            <div id="modalListaCheckboxes" class="lista-checkboxes">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div class="acciones-modal">
+                <button class="btn btn-calendario" id="btnCalendarioModal">
+                    <i class="fas fa-calendar-plus"></i> Agregar a mi calendario
+                </button>
+                <button class="btn btn-confirmar" id="btnConfirmarModal" style="background:var(--verde-salvia); color:var(--azul-marino);">
+                    <i class="fas fa-check"></i> Confirmar asistencia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==============================================================
+        // CONFIGURACIÓN
+        // ==============================================================
+        const API_BASE = '';
+
+        // ==============================================================
+        // UTILITIES
+        // ==============================================================
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const iconMap = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle'
+            };
+            toast.innerHTML = `<i class="fas ${iconMap[type] || iconMap.info}"></i> ${message}`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, duration);
+        }
+
+        function getInvitationId() {
+            const path = window.location.pathname;
+            const parts = path.split('/');
+            return parts[parts.length - 1];
+        }
+
+        function generarICS() {
+            const fechaInicio = new Date('2027-01-08T23:00:00Z');
+            const fechaFin = new Date('2027-01-09T03:00:00Z');
+            const dtstart = fechaInicio.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+            const dtend = fechaFin.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+            const dtstamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+            const uid = `boda-dayana-exio-${Date.now()}@invitation`;
+
+            return `BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:-//Dayana y Exio//Boda 2027//ES
+        CALSCALE:GREGORIAN
+        BEGIN:VEVENT
+        UID:${uid}
+        DTSTAMP:${dtstamp}
+        DTSTART:${dtstart}
+        DTEND:${dtend}
+        SUMMARY:Boda de Dayana y Exio
+        DESCRIPTION:Te esperamos en la terraza del portón, Cúcuta. ¡Celebremos juntos!
+        LOCATION:La terraza del portón, Cúcuta
+        END:VEVENT
+        END:VCALENDAR`;
+        }
+
+        function descargarCalendario() {
+            const contenido = generarICS();
+            const blob = new Blob([contenido], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'boda_dayana_exio.ics';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('¡Recordatorio agregado a tu calendario!', 'success');
+        }
+
+        // ==============================================================
+        // CARGAR DATOS DE LA INVITACIÓN
+        // ==============================================================
+        const loader = document.getElementById('loaderInicial');
+        const sobreOverlay = document.getElementById('sobreOverlay');
+        const sobreBtn = document.getElementById('sobreBtn');
+        const invitacionContainer = document.getElementById('invitacionContainer');
+        const content = document.getElementById('invitacionContent');
+
+        let invitationData = null;
+        let selectedOption = null; // 'presencial', 'virtual', 'no_asistir'
+
+        async function loadInvitation() {
+            const uuid = getInvitationId();
+            if (!uuid) {
+                loader.innerHTML = '<p>❌ Error: no se encontró el código de invitación.</p>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/public/invitation/${uuid}`);
+                if (!res.ok) {
+                    if (res.status === 404) throw new Error('Invitación no encontrada');
+                    if (res.status === 410) throw new Error('Esta invitación ha expirado');
+                    throw new Error('Error al cargar la invitación');
+                }
+                const data = await res.json();
+                invitationData = data;
+
+                if (data.invitation.group_status === 'EXPIRED') {
+                    loader.innerHTML = `
+                                <div class="expirado">
+                                    <i class="fas fa-clock"></i>
+                                    <h2>Invitación expirada</h2>
+                                    <p>El tiempo para confirmar esta invitación ha terminado.<br>Los cupos han sido reasignados.</p>
+                                </div>
+                            `;
+                    return;
+                }
+
+                loader.style.display = 'none';
+                sobreOverlay.classList.remove('hidden');
+                invitacionContainer.classList.remove('active');
+
+                sobreBtn.addEventListener('click', function abrir() {
+                    sobreOverlay.classList.add('hidden');
+                    invitacionContainer.classList.add('active');
+                    renderInvitation(data);
+                    sobreBtn.removeEventListener('click', abrir);
+                });
+
+            } catch (error) {
+                loader.innerHTML = `<p style="color:#c0392b;">❌ ${error.message}</p>`;
+                showToast(error.message, 'error');
+            }
+        }
+
+        // ==============================================================
+        // RENDERIZAR INVITACIÓN
+        // ==============================================================
+        function renderInvitation(data) {
+            const inv = data.invitation;
+            const family = data.family_members || [];
+            const isForeign = inv.is_foreign || false;
+
+            // Verificar si ya está confirmada (cualquier estado que no sea PENDING)
+            const yaConfirmado = inv.group_status !== 'PENDING';
+
+            let html = `
+
+                        <!-- ===== BLOQUE 1: FOTO Y NOMBRES ===== -->
+                        <div class="bloque-seccion bloque-oscuro">
+                            <div class="contenedor-foto">
+                                <img src="https://torrealbaexio-prog.github.io/invitacion-boda/foto1.jpeg" alt="Dayana y Exio" class="foto-boda">
+                            </div>
+                            <h1 class="nombres-novios">Dayana</h1>
+                            <div class="ampersand">&amp;</div>
+                            <h1 class="nombres-novios">Exio</h1>
+                        </div>
+
+                        <div class="divisor-dorado"></div>
+
+                        <!-- ===== BLOQUE 2: SALUDO Y LISTA ===== -->
+                        <div class="bloque-seccion bloque-claro">
+                            <h2 class="texto-invitado">¡Hola, <span id="nombre-invitado">${inv.primary_guest}</span>!</h2>
+
+                            <div class="versiculo">
+                                "Si alguno prevalece contra el que está solo, dos estarán contra él, pues cordón de tres dobleces no se rompe pronto."
+                                <span class="cita-versiculo">Eclesiastés 4,12</span>
+                            </div>
+
+                            <p class="introduccion-texto">
+                                Hemos decidido unir nuestras vidas en matrimonio y nos llenaría de alegría contar con su compañía. Invitamos a las siguientes personas de su familia:
+                            </p>
+
+                            <div class="lista-pases-contenedor">
+                                <ul id="lista-pases-dinamica">
+                                    <li class="pase-item">${inv.primary_guest}</li>
+                                    ${family.map(m => `<li class="pase-item">${m.name}</li>`).join('')}
+                                </ul>
+                            </div>
+
+                            <p class="nota-aclaratoria">* Cupos limitados. Velada exclusivamente para adultos.</p>
+                        </div>
+
+                        <div class="divisor-dorado"></div>
+
+                        <!-- ===== BLOQUE 3: SAVE THE DATE ===== -->
+                        <div class="bloque-seccion bloque-oscuro">
+                            <h3 class="subtitulo-elegante">SAVE THE DATE</h3>
+                            <h4 class="fecha-texto">Enero 8, 2027</h4>
+                            <div id="contador" class="contador-display">
+                                <div class="unidad-tiempo"><span id="dias" class="numero">--</span><span class="etiqueta">Días</span></div>
+                                <div class="unidad-tiempo"><span id="horas" class="numero">--</span><span class="etiqueta">Horas</span></div>
+                                <div class="unidad-tiempo"><span id="minutos" class="numero">--</span><span class="etiqueta">Min</span></div>
+                                <div class="unidad-tiempo"><span id="segundos" class="numero">--</span><span class="etiqueta">Seg</span></div>
+                            </div>
+                        </div>
+
+                        <div class="divisor-dorado"></div>
+
+                        <!-- ===== BLOQUE 4: RECEPCIÓN ===== -->
+                        <div class="bloque-seccion bloque-claro">
+                            <h3 class="subtitulo-elegante cursivo">Recepción</h3>
+                            <p class="datos-lugar"><strong>Lugar:</strong> La terraza del portón, Cúcuta</p>
+                            <div class="grupo-mapas">
+                                <a href="https://maps.google.com/?q=La+terraza+del+porton+Cucuta" target="_blank" class="btn btn-maps">
+                                    <i class="fas fa-map-marker-alt"></i> Google Maps
+                                </a>
+                                <a href="https://waze.com/ul?q=La+terraza+del+porton+Cucuta" target="_blank" class="btn btn-waze">
+                                    <i class="fab fa-waze"></i> Waze
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="divisor-dorado"></div>
+
+                        <!-- ===== BLOQUE 5: CITA Y FOTO ===== -->
+                        <div class="bloque-seccion bloque-oscuro">
+                            <div class="contenedor-foto">
+                                <img src="https://torrealbaexio-prog.github.io/invitacion-boda/foto2.jpeg" alt="Dayana y Exio" class="foto-boda">
+                            </div>
+                            <p style="font-style: italic; font-family: var(--font-serif); text-align:center; color: var(--blanco); font-size: 1.1rem;">
+                                "Por encima de todo, vístanse de amor, que es el vínculo perfecto."
+                            </p>
+                        </div>
+
+                        <div class="divisor-dorado"></div>
+
+                        <!-- ===== BLOQUE 6: DRESS CODE ===== -->
+                        <div class="bloque-seccion bloque-claro">
+                            <h3 class="subtitulo-elegante">DRESS CODE</h3>
+                            <p class="aviso-colores">Respetuosamente les solicitamos reservar los siguientes colores de uso exclusivo de la novia:</p>
+                            <div class="colores-prohibidos">
+                                <div class="item-color"><span class="circulo-color blanco"></span> Blanco</div>
+                                <div class="item-color"><span class="circulo-color verde"></span> Verde</div>
+                                <div class="item-color"><span class="circulo-color beige"></span> Beige</div>
+                                <div class="item-color"><span class="circulo-color azul"></span> Azul</div>
+                            </div>
+                        </div>
+
+                        <div class="divisor-dorado"></div>
+
+                        <!-- ===== BLOQUE 7: TRANSMISIÓN VIRTUAL (solo si es foreign) ===== -->
+                        ${isForeign ? `
+                            <div class="bloque-seccion bloque-oscuro">
+                                <h3 class="subtitulo-elegante">Transmisión Virtual</h3>
+                                <div style="text-align:center;">
+                                    <a href="https://youtube.com" target="_blank" class="btn btn-transmision">
+                                        <i class="fas fa-video"></i> UNIRSE A LA TRANSMISIÓN
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="divisor-dorado"></div>
+                        ` : ''}
+
+                        <!-- ===== BLOQUE 8: CONFIRMAR ASISTENCIA ===== -->
+            `;
+
+            if (yaConfirmado) {
+                // Mensaje de ya confirmado
+                html += `
+                            <div class="bloque-seccion bloque-claro">
+                                <div class="ya-confirmado">
+                                    <i class="fas fa-check-circle"></i>
+                                    <h3>¡Ya confirmaste tu asistencia!</h3>
+                                    <p>Tu respuesta fue registrada. ¡Te esperamos con mucho cariño!</p>
+                                    <button class="btn btn-calendario" id="btnCalendarioYaConfirmado">
+                                        <i class="fas fa-calendar-plus"></i> Agregar a mi calendario
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+            } else {
+                // Botones de confirmación
+                html += `
+                            <div class="bloque-seccion bloque-claro" id="bloque-confirmacion">
+                                <h3 class="subtitulo-elegante" style="color:var(--verde-oscuro);">Confirmar Asistencia</h3>
+                                <div class="botones-confirmacion">
+                                    ${isForeign ? `
+                                        <button class="btn btn-confirmar" data-status="CONFIRMED">Asistiré presencialmente</button>
+                                        <button class="btn btn-confirmar" data-status="VIRTUAL">Asistiré virtualmente</button>
+                                    ` : `
+                                        <button class="btn btn-confirmar" data-status="CONFIRMED">Confirmar asistencia</button>
+                                    `}
+                                    <button class="btn btn-no-asistir" data-status="REJECTED">No podré asistir</button>
+                                </div>
+                            </div>
+                        `;
+            }
+
+            content.innerHTML = html;
+
+            // Iniciar contador
+            iniciarContador();
+
+            // ==========================================================
+            // SI YA CONFIRMADO: asignar evento al botón de calendario
+            // ==========================================================
+            if (yaConfirmado) {
+                const btnCalendario = document.getElementById('btnCalendarioYaConfirmado');
+                if (btnCalendario) {
+                    btnCalendario.addEventListener('click', descargarCalendario);
+                }
+                return; // No continuar con la lógica de confirmación
+            }
+
+            // ==========================================================
+            // LÓGICA DE CONFIRMACIÓN (no confirmado)
+            // ==========================================================
+            const botonesConfirmacion = document.querySelectorAll('.botones-confirmacion .btn');
+            const modalOverlay = document.getElementById('modalConfirmacion');
+            const modalLista = document.getElementById('modalListaCheckboxes');
+            const btnCalendarioModal = document.getElementById('btnCalendarioModal');
+            const btnConfirmarModal = document.getElementById('btnConfirmarModal');
+            const cerrarModalBtn = document.getElementById('cerrarModalConfirmacion');
+
+            // Al hacer clic en un botón de confirmación
+            botonesConfirmacion.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const status = this.dataset.status; // 'CONFIRMED', 'VIRTUAL', 'REJECTED'
+
+                    if (status === 'REJECTED') {
+                        // Enviar directamente la respuesta sin abrir modal
+                        enviarConfirmacionDirecta('REJECTED');
+                        return;
+                    }
+
+                    // Abrir modal para CONFIRMED o VIRTUAL
+                    abrirModalConfirmacion(status);
+                });
+            });
+
+            function abrirModalConfirmacion(status) {
+                // Construir lista de checkboxes en el modal
+                const familyMembers = invitationData.family_members || [];
+                let modalHtml = `
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="modal_check_principal" checked disabled>
+                                <label for="modal_check_principal" class="nombre-principal">${invitationData.invitation.primary_guest} (tú)</label>
+                            </div>
+                        `;
+                familyMembers.forEach(m => {
+                    modalHtml += `
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="modal_check_${m.id}" ${m.is_attending === true ? 'checked' : ''}>
+                                    <label for="modal_check_${m.id}">${m.name}</label>
+                                </div>
+                            `;
+                });
+                modalLista.innerHTML = modalHtml;
+
+                // Almacenar el estado en el modal para usarlo al confirmar
+                modalOverlay.dataset.status = status;
+
+                // Mostrar modal
+                modalOverlay.classList.add('activo');
+            }
+
+            // Cerrar modal
+            cerrarModalBtn.addEventListener('click', () => {
+                modalOverlay.classList.remove('activo');
+            });
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('activo');
+                }
+            });
+
+            // Botón calendario dentro del modal
+            btnCalendarioModal.addEventListener('click', descargarCalendario);
+
+            // Botón confirmar dentro del modal
+            btnConfirmarModal.addEventListener('click', function() {
+                const status = modalOverlay.dataset.status || 'CONFIRMED';
+                enviarConfirmacionDesdeModal(status);
+            });
+
+            // ==========================================================
+            // FUNCIONES DE ENVÍO
+            // ==========================================================
+            async function enviarConfirmacionDirecta(status) {
+                // Para "REJECTED", todos los miembros en false
+                const familyMembers = invitationData.family_members || [];
+                const responses = familyMembers.map(m => ({ id: m.id, is_attending: false }));
+
+                const payload = {
+                    uuid: getInvitationId(),
+                    responses: responses,
+                    status: status // 'REJECTED'
+                };
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/public/respond`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Error al confirmar');
+
+                    showToast('¡Respuesta enviada con éxito!', 'success');
+                    // Recargar para mostrar el mensaje de "ya confirmado"
+                    setTimeout(() => loadInvitation(), 1000);
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+
+            async function enviarConfirmacionDesdeModal(status) {
+                // Recoger checkboxes del modal (excluyendo el principal que está disabled)
+                const checkboxes = document.querySelectorAll('#modalListaCheckboxes .checkbox-item input[type="checkbox"]:not([disabled])');
+                const responses = [];
+                checkboxes.forEach(cb => {
+                    const id = cb.id.replace('modal_check_', '');
+                    if (id !== 'principal') {
+                        responses.push({ id, is_attending: cb.checked });
+                    }
+                });
+
+                const payload = {
+                    uuid: getInvitationId(),
+                    responses: responses,
+                    status: status // 'CONFIRMED' o 'VIRTUAL'
+                };
+
+                // Deshabilitar botón
+                btnConfirmarModal.disabled = true;
+                btnConfirmarModal.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/public/respond`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Error al confirmar');
+
+                    modalOverlay.classList.remove('activo');
+                    showToast('¡Respuesta enviada con éxito!', 'success');
+                    // Recargar
+                    setTimeout(() => loadInvitation(), 1000);
+                } catch (err) {
+                    showToast(err.message, 'error');
+                    btnConfirmarModal.disabled = false;
+                    btnConfirmarModal.innerHTML = '<i class="fas fa-check"></i> Confirmar asistencia';
+                }
+            }
+        }
+
+        // ==============================================================
+        // CONTADOR REGRESIVO
+        // ==============================================================
+        function iniciarContador() {
+            const fechaBoda = new Date('2027-01-08T18:00:00-05:00').getTime();
+
+            function actualizarContador() {
+                const ahora = Date.now();
+                const diff = fechaBoda - ahora;
+
+                if (diff <= 0) {
+                    document.getElementById('dias').textContent = '0';
+                    document.getElementById('horas').textContent = '0';
+                    document.getElementById('minutos').textContent = '0';
+                    document.getElementById('segundos').textContent = '0';
+                    return;
+                }
+
+                const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const segundos = Math.floor((diff % (1000 * 60)) / 1000);
+
+                document.getElementById('dias').textContent = dias;
+                document.getElementById('horas').textContent = String(horas).padStart(2, '0');
+                document.getElementById('minutos').textContent = String(minutos).padStart(2, '0');
+                document.getElementById('segundos').textContent = String(segundos).padStart(2, '0');
+            }
+
+            actualizarContador();
+            setInterval(actualizarContador, 1000);
+        }
+
+        // ==============================================================
+        // INICIAR
+        // ==============================================================
+        loadInvitation();
+    </script>
+</body>
+</html>

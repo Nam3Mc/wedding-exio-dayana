@@ -1,0 +1,69 @@
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+*.env
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.suo
+
+# Logs
+logs/
+*.log
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Bases de datos locales
+*.sqlite
+*.db
+*.sqlite3
+
+# Cobertura / pruebas
+coverage/
+.nyc_output/
+*.lcov
+
+# Frontend – archivos generados
+dist/
+build/
+out/
+*.min.js
+*.min.css
+
+# Respaldos
+*.bak
+*.orig
+*.rej
+
+# Uploads
+uploads/
+public/uploads/
+
+# Certificados / claves
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
