@@ -4,6 +4,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+if (!process.env.DATABASE_URL) {
+  console.error('❌ DATABASE_URL no está definida');
+  // No lanzamos error para que el servidor pueda iniciar, pero fallará en las consultas
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -14,6 +19,10 @@ const pool = new Pool({
 
 pool.on('connect', () => {
   console.log('✅ Conectado a Neon (PostgreSQL)');
+});
+
+pool.on('error', (err) => {
+  console.error('❌ Error en el pool de PostgreSQL:', err);
 });
 
 export default pool;
