@@ -1,86 +1,67 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-import cookieParser from 'cookie-parser';
 import express from 'express';
-import rateLimit from 'express-rate-limit';
-import helmet from 'helmet';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
 
-import { pool } from './src/config/db.js';
-import { env } from './src/config/env.js';
-import {
-    errorHandler,
-    notFoundHandler
-} from './src/middleware/error-handler.js';
-import {
-    noStore,
-    requireSameOrigin
-} from './src/middleware/security.js';
-import adminRoutes from './src/routes/admin.routes.js';
-import authRoutes from './src/routes/auth.routes.js';
-import publicRoutes from './src/routes/public.routes.js';
+import pool from './api/db.js';
+import auth from './api/auth.js';
+import adminRoutes from './api/routes/admin.js';
+import publicRoutes from './api/routes/public.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const publicDirectory = path.join(__dirname, 'public');
+
+dotenv.config();
 
 const app = express();
 
-app.disable('x-powered-by');
-app.set('trust proxy', 1);
+// Middlewares
+app.use(cors());
+app.use(express.json());
 
-app.use(
-    helmet({
-        contentSecurityPolicy: false,
-        crossOriginEmbedderPolicy: false
-    })
-);
-app.use(express.json({ limit: '32kb' }));
-app.use(cookieParser());
+// Servir archivos estáticos (útil en desarrollo local)
+app.use(express.static(path.join(__dirname, 'public')));
 
-const apiLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 300,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false
+// ========== LOGIN ==========
+app.post('/api/auth/login', async (req, res) => {
+  const { password } = req.body;
+  try {
+    if (password === process.env.ADMIN_PASSWORD) {
+      const token = jwt.sign(
+        { admin: true },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      return res.json({ token });
+    }
+    return res.status(401).json({ error: 'Contraseña incorrecta' });
+  } catch (error) {
+    console.error('Error en login:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
-app.use('/api', apiLimiter, noStore, requireSameOrigin);
+// ========== RUTAS ADMIN (protegidas) ==========
+app.use('/api/invitations', adminRoutes(pool, auth));
 
-app.get('/api/health', async (req, res) => {
-    const result = await pool.query('SELECT NOW() AS database_time');
+// ========== RUTAS PÚBLICAS ==========
+app.use('/api/public', publicRoutes(pool));
 
-    return res.status(200).json({
-        status: 'ok',
-        database: 'connected',
-        databaseTime: result.rows[0].database_time
-    });
+// ========== MANEJADOR DE ERRORES GLOBAL ==========
+app.use((err, req, res, next) => {
+  console.error('Error no capturado:', err);
+  res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/invitations', adminRoutes);
-app.use('/api/public', publicRoutes);
-
-app.use('/api', notFoundHandler);
-
-if (!env.isVercel) {
-    app.use(express.static(publicDirectory));
-
-    app.get('/', (req, res) => {
-        return res.sendFile(path.join(publicDirectory, 'admin.html'));
-    });
-
-    app.get('/invitation/:uuid', (req, res) => {
-        return res.sendFile(path.join(publicDirectory, 'invitation.html'));
-    });
+// ========== INICIAR SERVIDOR (solo en desarrollo) ==========
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
+  });
 }
 
-app.use(errorHandler);
-
-if (!env.isVercel && !env.isTest) {
-    app.listen(env.PORT, () => {
-        console.log(`Server running at http://localhost:${env.PORT}`);
-    });
-}
-
+// ========== EXPORTAR para Vercel ==========
 export default app;

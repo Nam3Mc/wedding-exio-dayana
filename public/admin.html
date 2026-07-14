@@ -573,7 +573,7 @@
             <div class="monograma">D&E</div>
             <h2>Panel de Administración</h2>
             <p>Ingresa la contraseña para gestionar las invitaciones</p>
-            <input type="password" id="passwordInput" placeholder="Contraseña" autocomplete="current-password" maxlength="256" autofocus />
+            <input type="password" id="passwordInput" placeholder="Contraseña" autofocus />
             <button id="loginBtn">Acceder</button>
             <div class="login-error" id="loginError"></div>
         </div>
@@ -603,7 +603,7 @@
                 <!-- Invitado principal -->
                 <div class="form-group">
                     <label for="primaryGuest">Invitado principal *</label>
-                    <input type="text" id="primaryGuest" placeholder="Ej: Dreiser" maxlength="100" autocomplete="off" />
+                    <input type="text" id="primaryGuest" placeholder="Ej: Dreiser" />
                 </div>
                 <!-- Fuera del país -->
                 <div class="form-group">
@@ -667,571 +667,384 @@
     </div>
 
     <script>
-        const CONFIG = Object.freeze({
-            API_BASE: '',
-            REQUEST_TIMEOUT_MS: 15000
-        });
+        // ============================================================
+        //  CONFIGURACIÓN
+        // ============================================================
+        // Si el frontend y backend están en el mismo dominio, deja API_BASE vacío.
+        // Si están en puertos distintos (ej: frontend en 5500, backend en 3000),
+        // cambia a 'http://localhost:3000'
+        const API_BASE = ''; // Ej: '' o 'http://localhost:3000'
 
-        const elements = {
-            toastContainer: document.getElementById('toastContainer'),
-            loginModal: document.getElementById('loginModal'),
-            passwordInput: document.getElementById('passwordInput'),
-            loginButton: document.getElementById('loginBtn'),
-            loginError: document.getElementById('loginError'),
-            panelContainer: document.getElementById('panelContainer'),
-            logoutButton: document.getElementById('logoutBtn'),
-            primaryGuestInput: document.getElementById('primaryGuest'),
-            isForeignInput: document.getElementById('isForeign'),
-            expirationDateInput: document.getElementById('expirationDate'),
-            companionsList: document.getElementById('acompanantesList'),
-            addCompanionButton: document.getElementById('addAcompananteBtn'),
-            generateButton: document.getElementById('generarBtn'),
-            tableBody: document.getElementById('invitationsTableBody')
-        };
-
+        // ============================================================
+        //  TOAST
+        // ============================================================
         function showToast(message, type = 'info', duration = 4000) {
-            const allowedTypes = new Set(['success', 'error', 'info']);
-            const safeType = allowedTypes.has(type) ? type : 'info';
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
             const iconMap = {
                 success: 'fa-check-circle',
                 error: 'fa-exclamation-circle',
                 info: 'fa-info-circle'
             };
-
-            const toast = document.createElement('div');
-            toast.className = `toast ${safeType}`;
-            toast.setAttribute('role', safeType === 'error' ? 'alert' : 'status');
-
-            const icon = document.createElement('i');
-            icon.className = `fas ${iconMap[safeType]}`;
-            icon.setAttribute('aria-hidden', 'true');
-
-            const text = document.createElement('span');
-            text.textContent = String(message ?? '');
-
-            toast.append(icon, text);
-            elements.toastContainer.appendChild(toast);
-
+            toast.innerHTML = `<i class="fas ${iconMap[type] || iconMap.info}"></i> ${message}`;
+            container.appendChild(toast);
             requestAnimationFrame(() => {
                 toast.classList.add('show');
             });
-
-            window.setTimeout(() => {
+            setTimeout(() => {
                 toast.classList.remove('show');
-                window.setTimeout(() => toast.remove(), 400);
+                setTimeout(() => toast.remove(), 400);
             }, duration);
         }
 
-        async function fetchJson(url, options = {}) {
-            const controller = new AbortController();
-            const timeoutId = window.setTimeout(() => {
-                controller.abort();
-            }, CONFIG.REQUEST_TIMEOUT_MS);
+        // ============================================================
+        //  LOGIN
+        // ============================================================
+        const loginModal = document.getElementById('loginModal');
+        const passwordInput = document.getElementById('passwordInput');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
 
+        async function login(password) {
+            loginBtn.disabled = true;
+            loginError.textContent = '';
+        
             try {
-                const response = await fetch(url, {
-                    ...options,
-                    credentials: 'same-origin',
-                    signal: controller.signal,
-                    headers: {
-                        Accept: 'application/json',
-                        ...(options.headers || {})
-                    }
-                });
-
-                const responseText = await response.text();
-                let data = {};
-
-                if (responseText) {
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch {
-                        data = {};
-                    }
-                }
-
-                if (!response.ok) {
-                    const apiError = data?.error;
-                    let message = '';
-
-                    if (typeof apiError === 'string') {
-                        message = apiError;
-                    } else if (
-                        apiError &&
-                        typeof apiError === 'object' &&
-                        typeof apiError.message === 'string'
-                    ) {
-                        message = apiError.message;
-                    } else if (typeof data?.message === 'string') {
-                        message = data.message;
-                    } else if (response.status === 404) {
-                        message =
-                            'La API de Express no está disponible en este deployment. ' +
-                            'Verifica el Root Directory, el preset Express y que Output Directory esté vacío.';
-                    } else {
-                        message = `La solicitud falló con estado ${response.status}.`;
-                    }
-
-                    const error = new Error(message);
-                    error.status = response.status;
-                    error.details = data?.details;
-                    throw error;
-                }
-
-                return data;
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    throw new Error(
-                        'La solicitud tardó demasiado. Verifica tu conexión.'
-                    );
-                }
-
-                throw error;
-            } finally {
-                window.clearTimeout(timeoutId);
-            }
-        }
-
-        function showLogin() {
-            elements.panelContainer.classList.remove('active');
-            elements.loginModal.classList.remove('hidden');
-            elements.passwordInput.focus();
-        }
-
-        function showPanel() {
-            elements.loginModal.classList.add('hidden');
-            elements.panelContainer.classList.add('active');
-        }
-
-        async function login() {
-            const password = elements.passwordInput.value;
-
-            if (!password.trim()) {
-                elements.loginError.textContent = 'Por favor ingresa la contraseña.';
-                return;
-            }
-
-            elements.loginButton.disabled = true;
-            elements.loginError.textContent = '';
-
-            try {
-                await fetchJson(`${CONFIG.API_BASE}/api/auth/login`, {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password })
-                });
-
-                elements.passwordInput.value = '';
-                showPanel();
-                await loadInvitations();
-                showToast('¡Bienvenido al panel de administración!', 'success');
-            } catch (error) {
-                console.error('Login error:', error);
-                elements.loginError.textContent = error.message;
-                showToast(error.message, 'error');
-            } finally {
-                elements.loginButton.disabled = false;
-            }
-        }
-
-        async function logout() {
-            elements.logoutButton.disabled = true;
-
-            try {
-                await fetchJson(`${CONFIG.API_BASE}/api/auth/logout`, {
-                    method: 'POST'
-                });
-            } catch (error) {
-                console.error('Logout error:', error);
-            } finally {
-                elements.logoutButton.disabled = false;
-                elements.loginError.textContent = '';
-                showLogin();
-                showToast('Sesión cerrada.', 'info');
-            }
-        }
-
-        function createCompanionItem(value = '') {
-            const item = document.createElement('div');
-            item.className = 'acompanante-item';
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'Nombre del acompañante';
-            input.maxLength = 100;
-            input.value = value;
-
-            const removeButton = document.createElement('button');
-            removeButton.type = 'button';
-            removeButton.className = 'btn-remove-acompanante';
-            removeButton.setAttribute('aria-label', 'Eliminar acompañante');
-
-            const icon = document.createElement('i');
-            icon.className = 'fas fa-times';
-            icon.setAttribute('aria-hidden', 'true');
-            removeButton.appendChild(icon);
-
-            removeButton.addEventListener('click', () => {
-                if (elements.companionsList.children.length <= 1) {
-                    input.value = '';
-                    input.focus();
-                    return;
-                }
-
-                item.remove();
-                syncCompanionRemoveButtons();
-            });
-
-            item.append(input, removeButton);
-            return item;
-        }
-
-        function syncCompanionRemoveButtons() {
-            const onlyOne = elements.companionsList.children.length === 1;
-
-            elements.companionsList
-                .querySelectorAll('.btn-remove-acompanante')
-                .forEach((button) => {
-                    button.title = onlyOne
-                        ? 'Limpiar acompañante'
-                        : 'Eliminar acompañante';
-                });
-        }
-
-        function resetCompanions() {
-            elements.companionsList.replaceChildren(createCompanionItem());
-            syncCompanionRemoveButtons();
-        }
-
-        function getCompanionNames() {
-            return Array.from(
-                elements.companionsList.querySelectorAll('input[type="text"]')
-            )
-                .map((input) => input.value.trim())
-                .filter(Boolean);
-        }
-
-        function setMinimumExpirationDate() {
-            const parts = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'America/Bogota',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).formatToParts(new Date());
-            const values = Object.fromEntries(
-                parts.map((part) => [part.type, part.value])
-            );
-            elements.expirationDateInput.min =
-                `${values.year}-${values.month}-${values.day}`;
-        }
-
-        async function createInvitation() {
-            const primaryGuest = elements.primaryGuestInput.value.trim();
-            const familyMembers = getCompanionNames();
-            const expirationDate = elements.expirationDateInput.value;
-
-            if (!primaryGuest) {
-                showToast('El invitado principal es obligatorio.', 'error');
-                elements.primaryGuestInput.focus();
-                return;
-            }
-
-            if (familyMembers.length === 0) {
-                showToast('Debes agregar al menos un acompañante.', 'error');
-                elements.companionsList.querySelector('input')?.focus();
-                return;
-            }
-
-            if (!expirationDate) {
-                showToast('Selecciona una fecha límite.', 'error');
-                elements.expirationDateInput.focus();
-                return;
-            }
-
-            elements.generateButton.disabled = true;
-
-            try {
-                const data = await fetchJson(`${CONFIG.API_BASE}/api/invitations`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        primary_guest: primaryGuest,
-                        family_members: familyMembers,
-                        is_foreign: elements.isForeignInput.checked,
-                        expiration_date: expirationDate,
-                        max_attendees: null
+                        password
                     })
                 });
-
-                const invitationLink = `${window.location.origin}/invitation/${data.id}`;
-
-                elements.primaryGuestInput.value = '';
-                elements.isForeignInput.checked = false;
-                elements.expirationDateInput.value = '';
-                resetCompanions();
-
+            
+                const contentType = response.headers.get('content-type') || '';
+                const isJson = contentType.includes('application/json');
+            
+                const data = isJson
+                    ? await response.json()
+                    : {
+                        error: await response.text()
+                    };
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(
+                            'La ruta de autenticación no está disponible en el deployment.'
+                        );
+                    }
+                
+                    throw new Error(
+                        data.error || 'No fue posible iniciar sesión.'
+                    );
+                }
+            
+                if (!data.token) {
+                    throw new Error(
+                        'El servidor no devolvió un token de autenticación.'
+                    );
+                }
+            
+                sessionStorage.setItem('token', data.token);
+            
+                loginModal.classList.add('hidden');
+                document
+                    .getElementById('panelContainer')
+                    .classList.add('active');
+            
                 await loadInvitations();
-                await copyText(invitationLink);
+            
                 showToast(
-                    'Invitación creada. El enlace fue copiado al portapapeles.',
+                    '¡Bienvenido al panel de administración!',
                     'success'
                 );
             } catch (error) {
-                if (error.status === 401) {
-                    showLogin();
-                }
-
-                console.error('Create invitation error:', error);
+                console.error('Login error:', error);
+            
+                loginError.textContent = error.message;
                 showToast(error.message, 'error');
             } finally {
-                elements.generateButton.disabled = false;
+                loginBtn.disabled = false;
             }
         }
 
-        function createTableMessage(message) {
-            const row = document.createElement('tr');
-            const cell = document.createElement('td');
-            cell.colSpan = 6;
-            cell.className = 'empty-message';
-            cell.textContent = message;
-            row.appendChild(cell);
-            return row;
-        }
-
-        function formatExpirationDate(value) {
-            const date = new Date(value);
-
-            if (Number.isNaN(date.getTime())) {
-                return 'Fecha inválida';
+        loginBtn.addEventListener('click', () => {
+            const pass = passwordInput.value.trim();
+            if (!pass) {
+                loginError.textContent = 'Por favor ingresa la contraseña';
+                return;
             }
+            login(pass);
+        });
 
-            return new Intl.DateTimeFormat('es-CO', {
-                timeZone: 'America/Bogota',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            }).format(date);
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            sessionStorage.removeItem('token');
+            document.getElementById('panelContainer').classList.remove('active');
+            loginModal.classList.remove('hidden');
+            passwordInput.value = '';
+            loginError.textContent = '';
+            showToast('Sesión cerrada', 'info');
+        });
+
+        // ============================================================
+        //  CHECK TOKEN AL CARGAR
+        // ============================================================
+        (function checkToken() {
+            const token = sessionStorage.getItem('token');
+            if (token) {
+                loginModal.classList.add('hidden');
+                document.getElementById('panelContainer').classList.add('active');
+                loadInvitations();
+            } else {
+                loginModal.classList.remove('hidden');
+                document.getElementById('panelContainer').classList.remove('active');
+            }
+        })();
+
+        // ============================================================
+        //  ACOMPAÑANTES DINÁMICOS
+        // ============================================================
+        const acompanantesList = document.getElementById('acompanantesList');
+        const addBtn = document.getElementById('addAcompananteBtn');
+
+        function addAcompananteInput(value = '') {
+            const div = document.createElement('div');
+            div.className = 'acompanante-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Nombre del acompañante" value="${value}" />
+                <button class="btn-remove-acompanante"><i class="fas fa-times"></i></button>
+            `;
+            const removeBtn = div.querySelector('.btn-remove-acompanante');
+            removeBtn.addEventListener('click', () => {
+                if (acompanantesList.children.length > 1) {
+                    div.remove();
+                } else {
+                    showToast('Debe haber al menos un acompañante', 'error');
+                }
+            });
+            acompanantesList.appendChild(div);
         }
 
-        function createBadge(status) {
-            const labels = {
-                PENDING: 'Pendiente',
-                CONFIRMED: 'Confirmada',
-                REJECTED: 'Rechazada',
-                VIRTUAL: 'Virtual',
-                EXPIRED: 'Expirada'
-            };
-            const normalized = String(status || 'PENDING').toUpperCase();
-            const badge = document.createElement('span');
-            badge.className = `badge badge-${normalized.toLowerCase()}`;
-            badge.textContent = labels[normalized] || normalized;
-            return badge;
-        }
+        addBtn.addEventListener('click', () => {
+            addAcompananteInput();
+        });
 
-        function createIconButton({ iconClass, title, extraClass = '' }) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `btn-icon ${extraClass}`.trim();
-            button.title = title;
-            button.setAttribute('aria-label', title);
+        document.querySelectorAll('.acompanante-item .btn-remove-acompanante').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const parent = this.closest('.acompanante-item');
+                if (acompanantesList.children.length > 1) {
+                    parent.remove();
+                } else {
+                    showToast('Debe haber al menos un acompañante', 'error');
+                }
+            });
+        });
 
-            const icon = document.createElement('i');
-            icon.className = iconClass;
-            icon.setAttribute('aria-hidden', 'true');
-            button.appendChild(icon);
-            return button;
-        }
+        // ============================================================
+        //  CREAR INVITACIÓN
+        // ============================================================
+        document.getElementById('generarBtn').addEventListener('click', async () => {
+            const primaryGuest = document.getElementById('primaryGuest').value.trim();
+            const isForeign = document.getElementById('isForeign').checked;
+            const expirationDate = document.getElementById('expirationDate').value;
 
-        async function copyText(value) {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(value);
+            const inputs = acompanantesList.querySelectorAll('input[type="text"]');
+            const familyMembers = [];
+            inputs.forEach(inp => {
+                const val = inp.value.trim();
+                if (val) familyMembers.push(val);
+            });
+
+            if (!primaryGuest) {
+                showToast('El invitado principal es obligatorio', 'error');
+                return;
+            }
+            if (familyMembers.length === 0) {
+                showToast('Debe agregar al menos un acompañante', 'error');
+                return;
+            }
+            if (!expirationDate) {
+                showToast('Selecciona una fecha de expiración', 'error');
                 return;
             }
 
-            const textarea = document.createElement('textarea');
-            textarea.value = value;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            textarea.remove();
-        }
-
-        function createInvitationRow(invitation) {
-            const row = document.createElement('tr');
-
-            const guestCell = document.createElement('td');
-            const guestName = document.createElement('strong');
-            guestName.textContent = String(invitation.primary_guest ?? '');
-            guestCell.appendChild(guestName);
-
-            const companionsCell = document.createElement('td');
-            companionsCell.textContent = String(
-                Number(invitation.total_family_members ?? 0)
-            );
-
-            const statusCell = document.createElement('td');
-            statusCell.appendChild(createBadge(invitation.group_status));
-
-            const expirationCell = document.createElement('td');
-            expirationCell.textContent = formatExpirationDate(
-                invitation.expiration_date
-            );
-
-            const invitationLink = `${window.location.origin}/invitation/${invitation.id}`;
-            const linkCell = document.createElement('td');
-            const linkWrapper = document.createElement('div');
-            linkWrapper.className = 'link-cell';
-
-            const linkText = document.createElement('span');
-            linkText.className = 'link-text';
-            linkText.textContent = invitationLink;
-            linkText.title = invitationLink;
-
-            const copyButton = createIconButton({
-                iconClass: 'fas fa-copy',
-                title: 'Copiar enlace',
-                extraClass: 'copy'
-            });
-            copyButton.addEventListener('click', async () => {
-                try {
-                    await copyText(invitationLink);
-                    showToast('Enlace copiado.', 'success');
-                } catch {
-                    showToast('No fue posible copiar el enlace.', 'error');
-                }
-            });
-
-            linkWrapper.append(linkText, copyButton);
-            linkCell.appendChild(linkWrapper);
-
-            const actionsCell = document.createElement('td');
-            const deleteButton = createIconButton({
-                iconClass: 'fas fa-trash-alt',
-                title: 'Eliminar invitación',
-                extraClass: 'danger'
-            });
-
-            deleteButton.addEventListener('click', async () => {
-                const accepted = window.confirm(
-                    `¿Eliminar la invitación de ${invitation.primary_guest}?`
-                );
-
-                if (!accepted) {
-                    return;
-                }
-
-                deleteButton.disabled = true;
-
-                try {
-                    await fetchJson(
-                        `${CONFIG.API_BASE}/api/invitations/${encodeURIComponent(invitation.id)}`,
-                        {
-                            method: 'DELETE'
-                        }
-                    );
-                    await loadInvitations();
-                    showToast('Invitación eliminada.', 'success');
-                } catch (error) {
-                    if (error.status === 401) {
-                        showLogin();
-                    }
-                    showToast(error.message, 'error');
-                } finally {
-                    deleteButton.disabled = false;
-                }
-            });
-
-            actionsCell.appendChild(deleteButton);
-            row.append(
-                guestCell,
-                companionsCell,
-                statusCell,
-                expirationCell,
-                linkCell,
-                actionsCell
-            );
-
-            return row;
-        }
-
-        async function loadInvitations() {
-            elements.tableBody.replaceChildren(
-                createTableMessage('Cargando invitaciones...')
-            );
+            // Enviamos la fecha tal cual (YYYY-MM-DD). El backend la interpretará como 00:00:00 en su zona horaria.
+            const payload = {
+                primary_guest: primaryGuest,
+                family_members: familyMembers,
+                is_foreign: isForeign,
+                expiration_date: expirationDate, // solo fecha
+                max_attendees: null
+            };
 
             try {
-                const invitations = await fetchJson(
-                    `${CONFIG.API_BASE}/api/invitations`,
-                    {
-                        method: 'GET',
-                        cache: 'no-store'
-                    }
-                );
-
-                if (!Array.isArray(invitations) || invitations.length === 0) {
-                    elements.tableBody.replaceChildren(
-                        createTableMessage(
-                            'No hay invitaciones aún. ¡Crea la primera!'
-                        )
-                    );
-                    return;
-                }
-
-                elements.tableBody.replaceChildren(
-                    ...invitations.map(createInvitationRow)
-                );
-            } catch (error) {
-                console.error('Load invitations error:', error);
-
-                if (error.status === 401) {
-                    showLogin();
-                    return;
-                }
-
-                elements.tableBody.replaceChildren(
-                    createTableMessage('Error al cargar las invitaciones.')
-                );
-                showToast(error.message, 'error');
-            }
-        }
-
-        async function restoreSession() {
-            try {
-                await fetchJson(`${CONFIG.API_BASE}/api/auth/session`, {
-                    method: 'GET',
-                    cache: 'no-store'
+                const token = sessionStorage.getItem('token');
+                const res = await fetch(`${API_BASE}/api/invitations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
                 });
-                showPanel();
-                await loadInvitations();
-            } catch {
-                showLogin();
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'Error al crear invitación');
+                }
+                const link = `${window.location.origin}/invitation/${data.id}`;
+                showToast(`✅ Invitación creada. Enlace: ${link}`, 'success', 6000);
+                // Limpiar formulario
+                document.getElementById('primaryGuest').value = '';
+                document.getElementById('isForeign').checked = false;
+                document.getElementById('expirationDate').value = '';
+                acompanantesList.innerHTML = '';
+                addAcompananteInput('');
+                loadInvitations();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        });
+
+        // ============================================================
+        //  CARGAR INVITACIONES (TABLA)
+        // ============================================================
+        async function loadInvitations() {
+            const tbody = document.getElementById('invitationsTableBody');
+            try {
+                const token = sessionStorage.getItem('token');
+                const res = await fetch(`${API_BASE}/api/invitations`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    if (res.status === 401 || res.status === 403) {
+                        sessionStorage.removeItem('token');
+                        document.getElementById('panelContainer').classList.remove('active');
+                        loginModal.classList.remove('hidden');
+                        showToast('Sesión expirada, inicia sesión nuevamente', 'error');
+                        return;
+                    }
+                    throw new Error('Error al cargar invitaciones');
+                }
+                const invitations = await res.json();
+                if (invitations.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty-message">No hay invitaciones aún. ¡Crea la primera!</td></tr>`;
+                    return;
+                }
+                let html = '';
+                invitations.forEach(inv => {
+                    const status = inv.group_status || 'PENDING';
+                    const badgeClass = `badge-${status.toLowerCase()}`;
+                    const statusLabel = {
+                        'PENDING': 'Pendiente',
+                        'CONFIRMED': 'Confirmada',
+                        'REJECTED': 'Rechazada',
+                        'EXPIRED': 'Expirada',
+                        'VIRTUAL': 'Virtual'
+                    } [status] || status;
+                    const link = `${window.location.origin}/invitation/${inv.id}`;
+                    const confirmed = inv.confirmed_attendees || 0;
+                    const total = inv.total_family_members || 0;
+                    const expDate = new Date(inv.expiration_date);
+                    const dateStr = expDate.toLocaleDateString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                    html += `
+                        <tr>
+                            <td><strong>${inv.primary_guest}</strong></td>
+                            <td>${confirmed}/${total}</td>
+                            <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
+                            <td>${dateStr}</td>
+                            <td>
+                                <div class="link-cell">
+                                    <span class="link-text" title="${link}">${link}</span>
+                                    <button class="btn-icon copy" data-link="${link}" title="Copiar enlace">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn-icon danger delete-btn" data-id="${inv.id}" title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+
+                // Copiar enlace
+                document.querySelectorAll('.copy').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const link = this.dataset.link;
+                        navigator.clipboard.writeText(link).then(() => {
+                            showToast('Enlace copiado al portapapeles', 'success');
+                        }).catch(() => {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = link;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            textarea.remove();
+                            showToast('Enlace copiado', 'success');
+                        });
+                    });
+                });
+
+                // Eliminar invitación
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const id = this.dataset.id;
+                        if (!confirm('¿Estás seguro de eliminar esta invitación? Esta acción no se puede deshacer.')) return;
+                        try {
+                            const token = sessionStorage.getItem('token');
+                            const res = await fetch(`${API_BASE}/api/invitations/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (!res.ok) {
+                                const data = await res.json();
+                                throw new Error(data.error || 'Error al eliminar');
+                            }
+                            showToast('Invitación eliminada', 'success');
+                            loadInvitations();
+                        } catch (err) {
+                            showToast(err.message, 'error');
+                        }
+                    });
+                });
+
+            } catch (err) {
+                showToast(err.message, 'error');
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-message">Error al cargar datos</td></tr>`;
             }
         }
 
-        elements.loginButton.addEventListener('click', login);
-        elements.passwordInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                login();
-            }
-        });
-        elements.logoutButton.addEventListener('click', logout);
-        elements.addCompanionButton.addEventListener('click', () => {
-            const item = createCompanionItem();
-            elements.companionsList.appendChild(item);
-            syncCompanionRemoveButtons();
-            item.querySelector('input')?.focus();
-        });
-        elements.generateButton.addEventListener('click', createInvitation);
+        // ============================================================
+        //  FECHA POR DEFECTO (15 días desde hoy, SOLO DÍA)
+        // ============================================================
+        (function setDefaultExpiration() {
+            const now = new Date();
+            now.setDate(now.getDate() + 15);
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            document.getElementById('expirationDate').value = `${year}-${month}-${day}`;
+        })();
 
-        setMinimumExpirationDate();
-        resetCompanions();
-        restoreSession();
+        // ============================================================
+        //  RECARGAR CADA 60 SEGUNDOS
+        // ============================================================
+        setInterval(() => {
+            if (document.getElementById('panelContainer').classList.contains('active')) {
+                loadInvitations();
+            }
+        }, 60000);
     </script>
 </body>
 </html>
