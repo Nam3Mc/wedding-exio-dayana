@@ -1,3 +1,1087 @@
+
+puedes explorar todos los archivos de este repo en git hub y determinar porque falla 
+
+Nam3Mc/wedding-exio-dayana
+
+Worked for 4m 19s
+Sí. Revisé todos los archivos publicados del repositorio. Hay dos fallos principales diferentes: uno en tu copia local y otro en el despliegue de Vercel.
+
+1. El error local de "type": "module"
+El package.json declara:
+
+"type": "module"
+Por lo tanto, todo archivo .js debe utilizar:
+
+import express from 'express';
+y no:
+
+const express = require('express');
+En la versión actual de GitHub, api/index.js, auth.js, db.js y las rutas ya usan correctamente import y export. Por eso, el error que mostraste anteriormente indica que tu archivo local no es igual al que está actualmente en la rama main, probablemente porque todavía contiene un require() en la primera línea. 
+
+Compruébalo con:
+
+git status
+git branch --show-current
+git fetch origin
+git diff origin/main -- package.json api/index.js api/auth.js api/db.js
+Luego actualiza:
+
+git pull --rebase origin main
+pnpm install
+pnpm dev
+No necesitas cambiar "type": "module" ni renombrar los archivos a .cjs. La versión actual del repositorio está diseñada para ES Modules.
+
+2. La configuración de Vercel está desactivada
+El archivo vercel.json tiene todas sus líneas comentadas:
+
+// {
+//     ...
+// }
+Eso significa que no existe ninguna configuración activa de rutas. El archivo tampoco constituye un objeto JSON válido con la configuración esperada por Vercel. 
+
+Al mismo tiempo, el frontend llama rutas como:
+
+/api/auth/login
+/api/invitations
+/api/public/invitation/:uuid
+pero no hay una regla activa que dirija esas solicitudes hacia la aplicación Express. 
+
+El problema de api/index.js
+Vercel reconoce automáticamente una aplicación Express completa cuando su entrypoint está en ubicaciones como:
+
+index.js
+server.js
+app.js
+src/index.js
+src/server.js
+Tu servidor está ubicado en:
+
+api/index.js
+Esa ubicación puede funcionar como una función individual /api, pero no convierte automáticamente /api/auth/login, /api/invitations, etc. en rutas del mismo servidor Express sin una configuración adicional. 
+
+3. La página principal también devuelve 404
+Dentro de public solamente existen:
+
+admin.html
+invitation.html
+_redirects
+No existe:
+
+public/index.html
+Por eso visitar la raíz / devuelve actualmente un 404. El despliegue publicado confirma ese comportamiento. 
+
+El archivo _redirects no resuelve esto en Vercel. La configuración de reescrituras de Vercel debe realizarse mediante vercel.json. 
+
+Corrección recomendada
+La solución más limpia es mover el servidor Express a la raíz del proyecto.
+
+Nueva estructura
+wedding-exio-dayana/
+├── index.js
+├── package.json
+├── vercel.json
+├── api/
+│   ├── auth.js
+│   ├── db.js
+│   └── routes/
+│       ├── admin.js
+│       └── public.js
+└── public/
+    ├── admin.html
+    └── invitation.html
+Mueve:
+
+api/index.js
+a:
+
+index.js
+Y modifica sus imports:
+
+import pool from './api/db.js';
+import auth from './api/auth.js';
+import adminRoutes from './api/routes/admin.js';
+import publicRoutes from './api/routes/public.js';
+También cambia esta línea:
+
+app.use(express.static(path.join(__dirname, '../public')));
+por:
+
+app.use(express.static(path.join(__dirname, 'public')));
+En Vercel, express.static() es ignorado, pero seguirá siendo útil cuando ejecutes el proyecto localmente; Vercel sirve automáticamente los archivos dentro de public. 
+
+package.json
+Cambia el entrypoint y los scripts:
+
+{
+    "name": "wedding_exio_dayana",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Boda Dayana y Exio - Sistema de invitaciones",
+    "main": "index.js",
+    "scripts": {
+        "dev": "nodemon index.js",
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.11.3"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.14"
+    }
+}
+vercel.json
+Reemplaza completamente el archivo comentado por:
+
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "rewrites": [
+        {
+            "source": "/",
+            "destination": "/admin.html"
+        },
+        {
+            "source": "/invitation/:id",
+            "destination": "/invitation.html"
+        }
+    ]
+}
+Otra posibilidad es renombrar:
+
+public/admin.html
+como:
+
+public/index.html
+En ese caso puedes eliminar la reescritura de /.
+
+4. Variables de entorno obligatorias
+El servidor requiere estas tres variables:
+
+DATABASE_URL=
+ADMIN_PASSWORD=
+JWT_SECRET=
+DATABASE_URL es utilizada por PostgreSQL, mientras que ADMIN_PASSWORD y JWT_SECRET son necesarias para iniciar sesión y generar el token. Si alguna falta, el login o las consultas fallarán. 
+
+Debes configurarlas en:
+
+Vercel → Project → Settings → Environment Variables
+y después hacer un nuevo deployment.
+
+Para desarrollo local crea:
+
+.env
+con:
+
+DATABASE_URL=tu_conexion_de_neon
+ADMIN_PASSWORD=tu_contraseña
+JWT_SECRET=una_clave_larga_y_aleatoria
+PORT=3000
+El .env está correctamente ignorado por Git y no debe subirse a GitHub. 
+
+5. Falta el esquema de la base de datos
+El repositorio consulta directamente las tablas:
+
+invitations
+family_members
+y espera varias columnas específicas, pero no contiene migraciones, schema.sql ni instrucciones para crear esas tablas. El proyecto solamente funcionará si la base de datos de Neon ya tiene exactamente esa estructura. 
+
+Diagnóstico final
+El orden probable de los fallos es:
+
+Localmente: tu copia todavía mezcla require() con "type": "module".
+
+En Vercel: vercel.json está completamente comentado.
+
+Las rutas API: api/index.js no está configurado como servidor Express general.
+
+La raíz: no existe public/index.html, por lo que aparece 404.
+
+Después de corregir eso: fallará el login o la base de datos si no están configuradas las variables de entorno.
+
+En una instalación nueva: faltará crear las tablas porque no hay migraciones ni archivo SQL.
+
+
+quiero dejar listo el proyecto para hacer deplyment en vercel te dare todos los archivos y los vasa  revisar y verificar que este todo preparada te parece?
+
+Sí, me parece bien.
+
+Envíame los archivos del proyecto y los revisaré como una auditoría previa al deployment en Vercel. Verificaré principalmente:
+
+Estructura del proyecto y entrypoint.
+
+Compatibilidad entre ES Modules y CommonJS.
+
+package.json, scripts y dependencias.
+
+vercel.json y rewrites.
+
+Rutas del backend Express.
+
+Archivos estáticos de public.
+
+Variables de entorno requeridas.
+
+Conexión con PostgreSQL/Neon.
+
+Manejo de errores y CORS.
+
+Seguridad de JWT y autenticación.
+
+Uso correcto de rutas relativas.
+
+Archivos que no deben subirse a GitHub.
+
+Funcionamiento local y en entorno serverless.
+
+Posibles errores que aparecerían después del deployment.
+
+Puedes enviarlos por partes manteniendo la ruta del archivo, por ejemplo:
+
+package.json
+{
+    ...
+}
+api/index.js
+...
+Comencemos por estos archivos, en este orden:
+
+package.json
+vercel.json
+api/index.js
+api/db.js
+api/auth.js
+Después revisamos las rutas, el frontend y la estructura de la base de datos.
+
+
+Screenshot 2026-07-14 151840.png
+
+Pasted code(27).html
+File
+
+Pasted code (2)(1).html
+File
+import pkg from 'pg';
+const { Pool } = pkg;
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Necesario para Neon
+  }
+});
+
+// Verificar conexión (opcional)
+pool.on('connect', () => {
+  console.log('✅ Conectado a Neon (PostgreSQL)');
+});
+
+export default pool;
+
+db.js
+
+
+import jwt from 'jsonwebtoken';
+
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Acceso denegado: token no proporcionado' });
+  }
+
+  // El formato esperado: "Bearer <token>"
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Token no válido' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // Podemos guardar información del usuario si se necesita
+    next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(403).json({ error: 'Token expirado' });
+    }
+    return res.status(403).json({ error: 'Token inválido' });
+  }
+};
+
+export default authMiddleware;
+
+auth.js
+
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
+
+import pool from './db.js';
+import auth from './auth.js';
+import adminRoutes from './routes/admin.js';
+import publicRoutes from './routes/public.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
+
+const app = express();
+
+// Middlewares
+app.use(cors());
+app.use(express.json());
+
+// Servir archivos estáticos (para desarrollo)
+app.use(express.static(path.join(__dirname, '../public')));
+
+// ========== LOGIN ==========
+app.post('/api/auth/login', async (req, res) => {
+  const { password } = req.body;
+  try {
+    if (password === process.env.ADMIN_PASSWORD) {
+      const token = jwt.sign(
+        { admin: true },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      return res.json({ token });
+    }
+    return res.status(401).json({ error: 'Contraseña incorrecta' });
+  } catch (error) {
+    console.error('Error en login:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ========== RUTAS ADMIN Y PÚBLICAS ==========
+app.use('/api/invitations', adminRoutes(pool, auth));
+app.use('/api/public', publicRoutes(pool));
+
+// ========== MANEJADOR DE ERRORES ==========
+app.use((err, req, res, next) => {
+  console.error('Error no capturado:', err);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
+
+// ========== INICIAR SERVIDOR (solo en desarrollo) ==========
+const PORT = process.env.PORT || 3000;
+// Si NO estamos en producción (Vercel), ejecutamos app.listen
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(✅ Servidor corriendo en http://localhost:${PORT});
+  });
+}
+
+// ========== EXPORTAR para Vercel ==========
+export default app;
+
+index.js
+
+import { Router } from 'express';
+
+export default (pool) => {
+  const router = Router();
+
+  // GET: Obtener datos de una invitación (público)
+  router.get('/invitation/:uuid', async (req, res) => {
+    const { uuid } = req.params;
+    try {
+      // Buscar la invitación
+      const invResult = await pool.query(
+        'SELECT * FROM invitations WHERE id = $1',
+        [uuid]
+      );
+      if (invResult.rowCount === 0) {
+        return res.status(404).json({ error: 'Invitación no encontrada' });
+      }
+      const invitation = invResult.rows[0];
+
+      // Verificar si expiró (si está PENDING y la fecha ya pasó)
+      const now = new Date();
+      const expiration = new Date(invitation.expiration_date);
+      if (invitation.group_status === 'PENDING' && now > expiration) {
+        // Actualizar estado a EXPIRED
+        await pool.query(
+          'UPDATE invitations SET group_status = $1 WHERE id = $2',
+          ['EXPIRED', uuid]
+        );
+        invitation.group_status = 'EXPIRED';
+      }
+
+      // Obtener familiares
+      const familyResult = await pool.query(
+        'SELECT id, name, is_attending FROM family_members WHERE invitation_id = $1',
+        [uuid]
+      );
+
+      res.json({
+        invitation: {
+          id: invitation.id,
+          primary_guest: invitation.primary_guest,
+          is_foreign: invitation.is_foreign,
+          expiration_date: invitation.expiration_date,
+          group_status: invitation.group_status,
+          max_attendees: invitation.max_attendees,
+        },
+        family_members: familyResult.rows
+      });
+    } catch (error) {
+      console.error('Error al obtener invitación pública:', error);
+      res.status(500).json({ error: 'Error al obtener invitación' });
+    }
+  });
+
+  // POST: Enviar respuesta (confirmar asistentes)
+  router.post('/respond', async (req, res) => {
+    const { uuid, responses } = req.body;
+    if (!uuid || !Array.isArray(responses)) {
+      return res.status(400).json({ error: 'Datos inválidos' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Verificar que la invitación existe y no está expirada
+      const invResult = await client.query(
+        'SELECT id, group_status, expiration_date FROM invitations WHERE id = $1',
+        [uuid]
+      );
+      if (invResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Invitación no encontrada' });
+      }
+      const invitation = invResult.rows[0];
+      const now = new Date();
+      const expiration = new Date(invitation.expiration_date);
+      if (invitation.group_status === 'PENDING' && now > expiration) {
+        await client.query('ROLLBACK');
+        return res.status(410).json({ error: 'La invitación ha expirado' });
+      }
+
+      // Actualizar cada familiar
+      for (const resp of responses) {
+        await client.query(
+          'UPDATE family_members SET is_attending = $1 WHERE id = $2 AND invitation_id = $3',
+          [resp.is_attending, resp.id, uuid]
+        );
+      }
+
+      // Calcular nuevo estado del grupo
+      const stats = await client.query(
+        SELECT 
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE is_attending = true) AS attending,
+          COUNT(*) FILTER (WHERE is_attending = false OR is_attending IS NULL) AS not_attending
+         FROM family_members WHERE invitation_id = $1,
+        [uuid]
+      );
+      const { total, attending, not_attending } = stats.rows[0];
+      let newStatus = 'PENDING';
+      if (attending > 0) {
+        newStatus = 'CONFIRMED';
+      } else if (not_attending === total && total > 0) {
+        newStatus = 'REJECTED';
+      }
+
+      await client.query(
+        'UPDATE invitations SET group_status = $1, updated_at = NOW() WHERE id = $2',
+        [newStatus, uuid]
+      );
+
+      await client.query('COMMIT');
+      res.json({
+        message: 'Respuesta guardada correctamente',
+        status: newStatus
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error al procesar respuesta:', error);
+      res.status(500).json({ error: 'Error al procesar respuesta' });
+    } finally {
+      client.release();
+    }
+  });
+
+  return router;
+};
+
+routes/public.js 
+
+
+import { Router } from 'express';
+
+export default (pool, auth) => {
+  const router = Router();
+
+  // Aplicar middleware de autenticación a todas las rutas de admin
+  router.use(auth);
+
+  // GET: Listar todas las invitaciones con conteos
+  router.get('/', async (req, res) => {
+    try {
+      const query = 
+        SELECT 
+          i.id,
+          i.primary_guest,
+          i.is_foreign,
+          i.expiration_date,
+          i.group_status,
+          i.created_at,
+          i.updated_at,
+          i.max_attendees,
+          COALESCE(
+            (SELECT COUNT(*) FROM family_members fm WHERE fm.invitation_id = i.id AND fm.is_attending = true),
+            0
+          ) AS confirmed_attendees,
+          COALESCE(
+            (SELECT COUNT(*) FROM family_members fm WHERE fm.invitation_id = i.id),
+            0
+          ) AS total_family_members
+        FROM invitations i
+        ORDER BY i.created_at DESC
+      ;
+      const { rows } = await pool.query(query);
+      res.json(rows);
+    } catch (error) {
+      console.error('Error al obtener invitaciones:', error);
+      res.status(500).json({ error: 'Error al obtener invitaciones' });
+    }
+  });
+
+  // POST: Crear nueva invitación
+  router.post('/', async (req, res) => {
+    const { primary_guest, family_members, is_foreign, expiration_date, max_attendees } = req.body;
+
+    // Validaciones básicas
+    if (!primary_guest || !family_members || !expiration_date) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    }
+    if (!Array.isArray(family_members) || family_members.length === 0) {
+      return res.status(400).json({ error: 'Debe incluir al menos un familiar' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Insertar invitación
+      const insertInvitation = 
+        INSERT INTO invitations 
+          (primary_guest, is_foreign, expiration_date, max_attendees, group_status)
+        VALUES ($1, $2, $3, $4, 'PENDING')
+        RETURNING id
+      ;
+      const values = [
+        primary_guest,
+        is_foreign || false,
+        expiration_date,
+        max_attendees || null
+      ];
+      const { rows } = await client.query(insertInvitation, values);
+      const invitationId = rows[0].id;
+
+      // Insertar cada familiar
+      for (const name of family_members) {
+        await client.query(
+          'INSERT INTO family_members (invitation_id, name) VALUES ($1, $2)',
+          [invitationId, name]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.status(201).json({
+        id: invitationId,
+        message: 'Invitación creada exitosamente'
+      });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error al crear invitación:', error);
+      res.status(500).json({ error: 'Error al crear invitación' });
+    } finally {
+      client.release();
+    }
+  });
+
+  // DELETE: Eliminar invitación (y familiares en cascada)
+  router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = await pool.query('DELETE FROM invitations WHERE id = $1', [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Invitación no encontrada' });
+      }
+      res.json({ message: 'Invitación eliminada exitosamente' });
+    } catch (error) {
+      console.error('Error al eliminar invitación:', error);
+      res.status(500).json({ error: 'Error al eliminar invitación' });
+    }
+  });
+
+  return router;
+};
+
+/routes/admin.js
+
+ese es todo el projecto incluyendo la imagen ocn la scafoldin ordrr
+
+Worked for 3m 21s
+Veredicto
+El proyecto todavía no está listo para deployment, aunque la base general está bien construida. Hay varios bloqueos de Vercel y tres errores importantes en la lógica de confirmación.
+
+El deployment actual devuelve 404 en la raíz, lo cual coincide con la configuración incompleta del repositorio. 
+
+Problemas que bloquean Vercel
+1. api/index.js está en una ubicación incorrecta para Express
+La detección actual de aplicaciones Express en Vercel busca el entrypoint en:
+
+index.js
+app.js
+server.js
+src/index.js
+src/app.js
+src/server.js
+Tu servidor está en:
+
+api/index.js
+Por eso Vercel no lo reconoce automáticamente como una aplicación Express completa. Debemos moverlo a la raíz:
+
+index.js
+y cambiar los imports a:
+
+import pool from './api/db.js';
+import auth from './api/auth.js';
+import adminRoutes from './api/routes/admin.js';
+import publicRoutes from './api/routes/public.js';
+Vercel exige además que la aplicación sea exportada por defecto, parte que actualmente sí tienes correctamente. 
+
+2. vercel.json no es JSON válido
+Todo el archivo está comentado:
+
+// {
+//     ...
+// }
+JSON no permite comentarios, así que Vercel no está recibiendo ninguna regla de rutas. 
+
+El archivo debe quedar así:
+
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "rewrites": [
+        {
+            "source": "/",
+            "destination": "/admin.html"
+        },
+        {
+            "source": "/invitation/:uuid",
+            "destination": "/invitation.html"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                },
+                {
+                    "key": "X-Frame-Options",
+                    "value": "DENY"
+                },
+                {
+                    "key": "Referrer-Policy",
+                    "value": "strict-origin-when-cross-origin"
+                }
+            ]
+        }
+    ]
+}
+Los rewrites conservan la URL visible mientras sirven otro archivo internamente. 
+
+3. _redirects no debe usarse
+Tienes:
+
+public/_redirects
+con:
+
+/invitation/* /invitation.html 200
+Ese archivo pertenece al sistema de redirects usado por otros proveedores y no configura las rutas de Vercel. La regla debe estar en vercel.json. Puedes eliminar _redirects. 
+
+4. express.static() será ignorado en producción
+Actualmente tienes:
+
+app.use(express.static(path.join(__dirname, '../public')));
+Esto sirve para ejecutar el proyecto localmente, pero Vercel ignora express.static() y sirve directamente el contenido de public mediante su CDN. Por eso necesitamos los rewrites anteriores. 
+
+Puedes mantener express.static() para desarrollo local, pero no debes depender de él para el deployment.
+
+Errores importantes en la lógica
+5. La opción VIRTUAL nunca se guarda
+invitation.html envía:
+
+{
+    uuid,
+    responses,
+    status: 'VIRTUAL'
+}
+Pero el backend solamente recibe:
+
+const { uuid, responses } = req.body;
+El campo status es ignorado. Después el backend calcula únicamente:
+
+if (attending > 0) {
+    newStatus = 'CONFIRMED';
+}
+Por lo tanto, una respuesta virtual termina guardada como CONFIRMED. El estado VIRTUAL que muestras en el panel administrativo nunca será generado por este endpoint. 
+
+ 
+
+El backend debe recibir y validar:
+
+const { uuid, responses, status } = req.body;
+
+const allowedStatuses = ['CONFIRMED', 'VIRTUAL', 'REJECTED'];
+
+if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({
+        error: 'Estado de confirmación inválido'
+    });
+}
+6. El invitado principal no se registra como asistente
+En el modal, el invitado principal aparece seleccionado:
+
+<input
+    type="checkbox"
+    id="modal_check_principal"
+    checked
+    disabled
+>
+Pero después el JavaScript excluye los inputs deshabilitados:
+
+input[type="checkbox"]:not([disabled])
+Por tanto, el backend solamente recibe las respuestas de los acompañantes. El invitado principal nunca queda almacenado como asistente. 
+
+
+La solución más sencilla es considerar que:
+
+CONFIRMED: el invitado principal asistirá presencialmente.
+
+VIRTUAL: el invitado principal asistirá virtualmente.
+
+REJECTED: el invitado principal no asistirá.
+
+El group_status debe establecerse usando el status recibido, no calculándolo solamente con los acompañantes.
+
+7. Una invitación expirada todavía puede responderse
+El endpoint comprueba:
+
+if (
+    invitation.group_status === 'PENDING' &&
+    now > expiration
+) {
+    return res.status(410);
+}
+Si la invitación ya tiene el estado EXPIRED, la condición es falsa porque ya no es PENDING. En consecuencia, alguien podría llamar directamente al endpoint y cambiar una invitación expirada a CONFIRMED o REJECTED. 
+
+Debe validarse así:
+
+if (invitation.group_status === 'EXPIRED') {
+    await client.query('ROLLBACK');
+
+    return res.status(410).json({
+        error: 'La invitación ha expirado'
+    });
+}
+Además, si solamente se permite una respuesta:
+
+if (invitation.group_status !== 'PENDING') {
+    await client.query('ROLLBACK');
+
+    return res.status(409).json({
+        error: 'Esta invitación ya fue respondida'
+    });
+}
+8. La fecha expira al comenzar el día
+El administrador envía:
+
+2026-08-01
+El backend crea:
+
+new Date(invitation.expiration_date);
+Eso normalmente representa el inicio del día. La invitación podría expirar a las 00:00, aunque el usuario entienda que tiene todo el día para responder.
+
+Es más seguro manejar expiration_date como DATE de PostgreSQL y comparar:
+
+expiration_date <
+    (CURRENT_TIMESTAMP AT TIME ZONE 'America/Bogota')::date
+Así expirará cuando la fecha seleccionada ya haya terminado.
+
+Problema de seguridad en los HTML
+Los nombres guardados en PostgreSQL se insertan directamente usando innerHTML:
+
+<td><strong>${inv.primary_guest}</strong></td>
+y:
+
+${family.map(m => `
+    <li class="pase-item">${m.name}</li>
+`).join('')}
+También guardas el JWT en sessionStorage. Una cadena maliciosa introducida como nombre podría ejecutar JavaScript dentro del panel y acceder al token. 
+
+ 
+
+
+Como mínimo, ambos HTML necesitan:
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+Y luego:
+
+const safePrimaryGuest = escapeHtml(inv.primary_guest);
+<td><strong>${safePrimaryGuest}</strong></td>
+También debemos dejar de insertar mensajes directamente en toast.innerHTML.
+
+Configuración y repositorio
+package.json
+Actualmente apunta a:
+
+"main": "api/index.js"
+Debe cambiar a:
+
+{
+    "name": "wedding-exio-dayana",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Sistema de invitaciones para la boda de Dayana y Exio",
+    "main": "index.js",
+    "engines": {
+        "node": "24.x"
+    },
+    "scripts": {
+        "dev": "nodemon index.js",
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "pg": "^8.11.3"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.14"
+    }
+}
+Vercel permite fijar la versión principal de Node mediante engines.node; actualmente admite Node 20, 22 y 24. 
+
+package-lock.json
+En tu .gitignore aparece:
+
+package-lock.json
+Pero para un deployment reproducible conviene subir package-lock.json. Vercel detecta este archivo y utiliza npm para instalar las versiones bloqueadas. 
+
+Elimina esta línea del .gitignore:
+
+package-lock.json
+Después ejecuta:
+
+npm install
+git add package.json package-lock.json
+Falta el esquema de PostgreSQL
+El proyecto usa estas tablas:
+
+invitations
+family_members
+pero el repositorio no incluye:
+
+schema.sql
+migrations/
+database/
+Tampoco existe una definición versionada de:
+
+Tipo de id.
+
+Restricciones de group_status.
+
+Clave foránea.
+
+ON DELETE CASCADE.
+
+Valores por defecto.
+
+Índices.
+
+Campos created_at y updated_at.
+
+El DELETE del backend asume que los familiares se eliminan en cascada, pero eso depende de una restricción que no está incluida en el proyecto. 
+
+Aunque tu base de Neon ya funcione, debemos agregar al repositorio:
+
+database/schema.sql
+Estructura final recomendada
+wedding-exio-dayana/
+├── api/
+│   ├── routes/
+│   │   ├── admin.js
+│   │   └── public.js
+│   ├── auth.js
+│   └── db.js
+├── database/
+│   └── schema.sql
+├── public/
+│   ├── assets/
+│   ├── admin.html
+│   └── invitation.html
+├── index.js
+├── .env.example
+├── .gitignore
+├── package.json
+├── package-lock.json
+└── vercel.json
+También conviene copiar las fotos que ahora cargas desde otro sitio hacia public/assets; actualmente la invitación depende de imágenes alojadas en un repositorio externo. 
+
+
+Lo que sí está correctamente hecho
+La sintaxis ES Modules es consistente, las consultas usan parámetros en vez de concatenar SQL, las operaciones múltiples emplean transacciones y liberan el cliente en finally, y el frontend utiliza rutas relativas para funcionar en el mismo dominio. 
+
+Para declararlo listo faltan estas correcciones:
+
+Mover api/index.js a index.js.
+
+Reemplazar vercel.json.
+
+Corregir completamente routes/public.js.
+
+Fortalecer auth.js, db.js y las variables de entorno.
+
+Corregir XSS y estados en ambos HTML.
+
+Agregar database/schema.sql y .env.example.
+
+Probar login, creación, consulta, confirmación presencial, virtual, rechazo, expiración y eliminación.
+
+
+ahora dadme el invitation html corregido totalmente
+
+Worked for 1m 16s
+Preparé el archivo completo conservando el diseño original y corrigiendo la lógica y seguridad del JavaScript. 
+
+
+invitation.html
+
+Reemplaza directamente:
+
+public/invitation.html
+Correcciones incluidas
+Protección contra XSS en los nombres obtenidos de PostgreSQL.
+
+Los mensajes toast ya no insertan contenido mediante innerHTML.
+
+Obtención segura del identificador desde:
+
+/invitation/:uuid
+Soporte adicional para pruebas con:
+
+/invitation.html?id=:uuid
+Validación del identificador antes de consultar la API.
+
+Manejo de respuestas que no sean JSON.
+
+Timeout de 15 segundos para las peticiones.
+
+Estado de carga, invitación inexistente, expirada y errores de conexión.
+
+El sobre permanece oculto hasta comprobar que la invitación existe.
+
+Confirmación independiente para:
+
+Presencial.
+
+Virtual.
+
+No asistirá.
+
+El invitado principal queda incluido automáticamente.
+
+Los acompañantes se envían individualmente.
+
+Prevención de envíos dobles.
+
+Actualización de la pantalla después de confirmar sin recargar toda la página.
+
+Mensajes diferentes para CONFIRMED, VIRTUAL y REJECTED.
+
+Mejoras de accesibilidad en modal, botones, teclado y mensajes.
+
+Cierre del modal con Escape.
+
+Enlaces externos protegidos con:
+
+rel="noopener noreferrer"
+Archivo .ics del calendario corregido.
+
+Limpieza del intervalo del contador para evitar múltiples temporizadores.
+
+Compatibilidad con la ruta reescrita de Vercel.
+
+Validación sintáctica realizada con Node.js sin errores.
+
+Dependencia importante
+Este frontend envía:
+
+{
+    "uuid": "...",
+    "status": "CONFIRMED",
+    "responses": []
+}
+o:
+
+{
+    "uuid": "...",
+    "status": "VIRTUAL",
+    "responses": []
+}
+o:
+
+{
+    "uuid": "...",
+    "status": "REJECTED",
+    "responses": []
+}
+Tu routes/public.js actual todavía ignora status. Por tanto, antes del deployment también debemos corregir ese archivo; de lo contrario, la opción virtual seguirá guardándose como presencial. 
+
+
+
+Library
+/
+invitation.html
+
+
+
+
+
+Library
+/
+invitation.html
+
+
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -40,7 +1124,7 @@
             color: var(--azul-marino);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
             padding: 20px;
             line-height: 1.6;
@@ -148,6 +1232,12 @@
             z-index: 1;
         }
         .sobre > * { position: relative; z-index: 2; }
+        .sobre:focus-visible,
+        .btn:focus-visible,
+        .cerrar-modal:focus-visible {
+            outline: 3px solid var(--dorado);
+            outline-offset: 4px;
+        }
         .sobre:hover { transform: scale(1.04) rotate(1deg); }
 
         .sobre h2 {
@@ -680,6 +1770,44 @@
             font-size: 1.1rem;
         }
 
+        .error-state {
+            max-width: 620px;
+            margin: 40px auto;
+            padding: 32px 24px;
+            border-radius: 24px;
+            background: var(--blanco);
+            box-shadow: var(--sombra-suave);
+            text-align: center;
+        }
+        .error-state i {
+            display: block;
+            margin-bottom: 14px;
+            color: #c0392b;
+            font-size: 3rem;
+        }
+        .error-state h2 {
+            margin-bottom: 8px;
+            color: var(--verde-oscuro);
+            font-family: var(--font-serif);
+        }
+        .error-state p {
+            opacity: 0.75;
+        }
+        [hidden] {
+            display: none !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
         /* ===================== RESPONSIVE ===================== */
         @media (max-width: 700px) {
             .marco-invitacion { padding: 25px 18px; }
@@ -719,7 +1847,7 @@
 <body>
 
     <!-- ===================== TOAST ===================== -->
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
     <!-- ===================== LOADER ===================== -->
     <div id="loaderInicial" class="loader">
@@ -728,8 +1856,8 @@
     </div>
 
     <!-- ===================== SOBRE MODAL ===================== -->
-    <div class="sobre-overlay" id="sobreOverlay">
-        <div class="sobre" id="sobreBtn">
+    <div class="sobre-overlay hidden" id="sobreOverlay" aria-hidden="true">
+        <div class="sobre" id="sobreBtn" role="button" tabindex="0" aria-label="Abrir invitación">
             <h2>Dayana & Exio</h2>
             <p>Toca para abrir tu invitación</p>
             <div class="flecha"><i class="fas fa-chevron-down"></i></div>
@@ -744,21 +1872,21 @@
     </div>
 
     <!-- ===================== MODAL FLOTANTE DE CONFIRMACIÓN ===================== -->
-    <div class="modal-confirmacion-overlay" id="modalConfirmacion">
+    <div class="modal-confirmacion-overlay" id="modalConfirmacion" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-hidden="true">
         <div class="modal-confirmacion">
-            <button class="cerrar-modal" id="cerrarModalConfirmacion">&times;</button>
+            <button type="button" class="cerrar-modal" id="cerrarModalConfirmacion" aria-label="Cerrar">&times;</button>
             <div class="icono-agradecimiento"><i class="fas fa-heart"></i></div>
-            <h2>¡Gracias por confirmar!</h2>
-            <p class="mensaje-agradecimiento">Nos llena de alegría que nos acompañes en este día especial.</p>
-            <p class="instruccion">Selecciona quiénes de tu grupo asistirán:</p>
+            <h2 id="modalTitle">Confirma tu asistencia</h2>
+            <p class="mensaje-agradecimiento" id="modalMessage">Nos llena de alegría que nos acompañes en este día especial.</p>
+            <p class="instruccion" id="modalInstruction">Selecciona quiénes de tu grupo asistirán:</p>
             <div id="modalListaCheckboxes" class="lista-checkboxes">
                 <!-- Se llena dinámicamente -->
             </div>
             <div class="acciones-modal">
-                <button class="btn btn-calendario" id="btnCalendarioModal">
+                <button type="button" class="btn btn-calendario" id="btnCalendarioModal" hidden>
                     <i class="fas fa-calendar-plus"></i> Agregar a mi calendario
                 </button>
-                <button class="btn btn-confirmar" id="btnConfirmarModal" style="background:var(--verde-salvia); color:var(--azul-marino);">
+                <button type="button" class="btn btn-confirmar" id="btnConfirmarModal" style="background:var(--verde-salvia); color:var(--azul-marino);">
                     <i class="fas fa-check"></i> Confirmar asistencia
                 </button>
             </div>
@@ -769,479 +1897,1137 @@
         // ==============================================================
         // CONFIGURACIÓN
         // ==============================================================
-        const API_BASE = '';
+        const CONFIG = Object.freeze({
+            API_BASE: '',
+            WEDDING_START: '2027-01-08T18:00:00-05:00',
+            WEDDING_END: '2027-01-08T22:00:00-05:00',
+            REQUEST_TIMEOUT_MS: 15000
+        });
+
+        const RESPONSE_STATUS = Object.freeze({
+            PENDING: 'PENDING',
+            CONFIRMED: 'CONFIRMED',
+            VIRTUAL: 'VIRTUAL',
+            REJECTED: 'REJECTED',
+            EXPIRED: 'EXPIRED'
+        });
 
         // ==============================================================
-        // UTILITIES
+        // ELEMENTOS Y ESTADO
         // ==============================================================
+        const elements = {
+            loader: document.getElementById('loaderInicial'),
+            envelopeOverlay: document.getElementById('sobreOverlay'),
+            envelopeButton: document.getElementById('sobreBtn'),
+            invitationContainer: document.getElementById('invitacionContainer'),
+            invitationContent: document.getElementById('invitacionContent'),
+            toastContainer: document.getElementById('toastContainer'),
+            modal: document.getElementById('modalConfirmacion'),
+            modalTitle: document.getElementById('modalTitle'),
+            modalMessage: document.getElementById('modalMessage'),
+            modalInstruction: document.getElementById('modalInstruction'),
+            modalList: document.getElementById('modalListaCheckboxes'),
+            modalCloseButton: document.getElementById('cerrarModalConfirmacion'),
+            modalCalendarButton: document.getElementById('btnCalendarioModal'),
+            modalConfirmButton: document.getElementById('btnConfirmarModal')
+        };
+
+        let invitationData = null;
+        let invitationId = null;
+        let envelopeOpened = false;
+        let pendingResponseStatus = null;
+        let countdownIntervalId = null;
+        let lastFocusedElement = null;
+        let isSubmitting = false;
+
+        // ==============================================================
+        // UTILIDADES
+        // ==============================================================
+        function normalizeText(value) {
+            return typeof value === 'string' ? value.trim() : '';
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
         function showToast(message, type = 'info', duration = 4000) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
+            const allowedTypes = new Set(['success', 'error', 'info']);
+            const safeType = allowedTypes.has(type) ? type : 'info';
             const iconMap = {
                 success: 'fa-check-circle',
                 error: 'fa-exclamation-circle',
                 info: 'fa-info-circle'
             };
-            toast.innerHTML = `<i class="fas ${iconMap[type] || iconMap.info}"></i> ${message}`;
-            container.appendChild(toast);
-            requestAnimationFrame(() => toast.classList.add('show'));
-            setTimeout(() => {
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${safeType}`;
+            toast.setAttribute('role', safeType === 'error' ? 'alert' : 'status');
+
+            const icon = document.createElement('i');
+            icon.className = `fas ${iconMap[safeType]}`;
+            icon.setAttribute('aria-hidden', 'true');
+
+            const text = document.createElement('span');
+            text.textContent = String(message ?? '');
+
+            toast.append(icon, text);
+            elements.toastContainer.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            window.setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 400);
+
+                window.setTimeout(() => {
+                    toast.remove();
+                }, 400);
             }, duration);
         }
 
         function getInvitationId() {
-            const path = window.location.pathname;
-            const parts = path.split('/');
-            return parts[parts.length - 1];
+            const url = new URL(window.location.href);
+            const queryId = normalizeText(url.searchParams.get('id'));
+
+            if (queryId) {
+                return queryId;
+            }
+
+            const segments = url.pathname
+                .split('/')
+                .map((segment) => segment.trim())
+                .filter(Boolean);
+
+            const invitationIndex = segments.findIndex(
+                (segment) => segment.toLowerCase() === 'invitation'
+            );
+
+            if (invitationIndex >= 0 && segments[invitationIndex + 1]) {
+                return decodeURIComponent(segments[invitationIndex + 1]);
+            }
+
+            return '';
         }
 
-        function generarICS() {
-            const fechaInicio = new Date('2027-01-08T23:00:00Z');
-            const fechaFin = new Date('2027-01-09T03:00:00Z');
-            const dtstart = fechaInicio.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-            const dtend = fechaFin.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-            const dtstamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
-            const uid = `boda-dayana-exio-${Date.now()}@invitation`;
-
-            return `BEGIN:VCALENDAR
-        VERSION:2.0
-        PRODID:-//Dayana y Exio//Boda 2027//ES
-        CALSCALE:GREGORIAN
-        BEGIN:VEVENT
-        UID:${uid}
-        DTSTAMP:${dtstamp}
-        DTSTART:${dtstart}
-        DTEND:${dtend}
-        SUMMARY:Boda de Dayana y Exio
-        DESCRIPTION:Te esperamos en la terraza del portón, Cúcuta. ¡Celebremos juntos!
-        LOCATION:La terraza del portón, Cúcuta
-        END:VEVENT
-        END:VCALENDAR`;
+        function isValidInvitationId(value) {
+            return /^[A-Za-z0-9_-]{1,128}$/.test(value);
         }
 
-        function descargarCalendario() {
-            const contenido = generarICS();
-            const blob = new Blob([contenido], { type: 'text/calendar;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
+        async function fetchJson(url, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => {
+                controller.abort();
+            }, CONFIG.REQUEST_TIMEOUT_MS);
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                    headers: {
+                        Accept: 'application/json',
+                        ...(options.headers || {})
+                    }
+                });
+
+                const responseText = await response.text();
+                let data = {};
+
+                if (responseText) {
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch {
+                        data = {};
+                    }
+                }
+
+                if (!response.ok) {
+                    const error = new Error(
+                        data.error || `La solicitud falló con estado ${response.status}`
+                    );
+
+                    error.status = response.status;
+                    throw error;
+                }
+
+                return data;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error(
+                        'La solicitud tardó demasiado. Verifica tu conexión e inténtalo nuevamente.'
+                    );
+                }
+
+                throw error;
+            } finally {
+                window.clearTimeout(timeoutId);
+            }
+        }
+
+        function setOverlayVisibility(isVisible) {
+            elements.envelopeOverlay.classList.toggle('hidden', !isVisible);
+            elements.envelopeOverlay.setAttribute(
+                'aria-hidden',
+                String(!isVisible)
+            );
+        }
+
+        function renderStateMessage({
+            title,
+            message,
+            icon = 'fa-exclamation-circle'
+        }) {
+            elements.loader.hidden = false;
+            elements.loader.replaceChildren();
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'error-state';
+
+            const iconElement = document.createElement('i');
+            iconElement.className = `fas ${icon}`;
+            iconElement.setAttribute('aria-hidden', 'true');
+
+            const heading = document.createElement('h2');
+            heading.textContent = title;
+
+            const paragraph = document.createElement('p');
+            paragraph.textContent = message;
+
+            wrapper.append(iconElement, heading, paragraph);
+            elements.loader.appendChild(wrapper);
+        }
+
+        function setLoadingState(message = 'Cargando invitación...') {
+            elements.loader.hidden = false;
+            elements.loader.replaceChildren();
+
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-spinner';
+            icon.setAttribute('aria-hidden', 'true');
+
+            const text = document.createTextNode(message);
+            elements.loader.append(icon, text);
+        }
+
+        // ==============================================================
+        // CALENDARIO
+        // ==============================================================
+        function formatUtcForCalendar(date) {
+            return date
+                .toISOString()
+                .replace(/[-:]/g, '')
+                .replace(/\.\d{3}Z$/, 'Z');
+        }
+
+        function generateCalendarFile() {
+            const start = new Date(CONFIG.WEDDING_START);
+            const end = new Date(CONFIG.WEDDING_END);
+            const now = new Date();
+            const uid = `boda-dayana-exio-${invitationId || 'invitado'}@wedding`;
+
+            return [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Dayana y Exio//Boda 2027//ES',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'BEGIN:VEVENT',
+                `UID:${uid}`,
+                `DTSTAMP:${formatUtcForCalendar(now)}`,
+                `DTSTART:${formatUtcForCalendar(start)}`,
+                `DTEND:${formatUtcForCalendar(end)}`,
+                'SUMMARY:Boda de Dayana y Exio',
+                'DESCRIPTION:Te esperamos en La Terraza del Portón, Cúcuta. ¡Celebremos juntos!',
+                'LOCATION:La Terraza del Portón, Cúcuta',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+        }
+
+        function downloadCalendar() {
+            const content = generateCalendarFile();
+            const blob = new Blob([content], {
+                type: 'text/calendar;charset=utf-8'
+            });
+            const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = url;
+
+            link.href = objectUrl;
             link.download = 'boda_dayana_exio.ics';
+            link.hidden = true;
+
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            showToast('¡Recordatorio agregado a tu calendario!', 'success');
+            link.remove();
+
+            URL.revokeObjectURL(objectUrl);
+            showToast('El evento se agregó a tu archivo de calendario.', 'success');
         }
 
         // ==============================================================
-        // CARGAR DATOS DE LA INVITACIÓN
+        // CARGA DE LA INVITACIÓN
         // ==============================================================
-        const loader = document.getElementById('loaderInicial');
-        const sobreOverlay = document.getElementById('sobreOverlay');
-        const sobreBtn = document.getElementById('sobreBtn');
-        const invitacionContainer = document.getElementById('invitacionContainer');
-        const content = document.getElementById('invitacionContent');
+        function validateInvitationPayload(data) {
+            return Boolean(
+                data &&
+                typeof data === 'object' &&
+                data.invitation &&
+                typeof data.invitation === 'object'
+            );
+        }
 
-        let invitationData = null;
-        let selectedOption = null; // 'presencial', 'virtual', 'no_asistir'
+        async function loadInvitation({ showEnvelope = true } = {}) {
+            if (!invitationId) {
+                invitationId = getInvitationId();
+            }
 
-        async function loadInvitation() {
-            const uuid = getInvitationId();
-            if (!uuid) {
-                loader.innerHTML = '<p>❌ Error: no se encontró el código de invitación.</p>';
+            if (!invitationId || !isValidInvitationId(invitationId)) {
+                setOverlayVisibility(false);
+                elements.invitationContainer.classList.remove('active');
+
+                renderStateMessage({
+                    title: 'Enlace de invitación inválido',
+                    message: 'El enlace no contiene un código de invitación válido.'
+                });
+
                 return;
             }
 
-            try {
-                const res = await fetch(`${API_BASE}/api/public/invitation/${uuid}`);
-                if (!res.ok) {
-                    if (res.status === 404) throw new Error('Invitación no encontrada');
-                    if (res.status === 410) throw new Error('Esta invitación ha expirado');
-                    throw new Error('Error al cargar la invitación');
-                }
-                const data = await res.json();
-                invitationData = data;
+            if (showEnvelope) {
+                setLoadingState();
+            }
 
-                if (data.invitation.group_status === 'EXPIRED') {
-                    loader.innerHTML = `
-                                <div class="expirado">
-                                    <i class="fas fa-clock"></i>
-                                    <h2>Invitación expirada</h2>
-                                    <p>El tiempo para confirmar esta invitación ha terminado.<br>Los cupos han sido reasignados.</p>
-                                </div>
-                            `;
+            try {
+                const encodedId = encodeURIComponent(invitationId);
+                const data = await fetchJson(
+                    `${CONFIG.API_BASE}/api/public/invitation/${encodedId}`,
+                    {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }
+                );
+
+                if (!validateInvitationPayload(data)) {
+                    throw new Error(
+                        'El servidor devolvió una invitación con formato inválido.'
+                    );
+                }
+
+                invitationData = {
+                    invitation: data.invitation,
+                    family_members: Array.isArray(data.family_members)
+                        ? data.family_members
+                        : []
+                };
+
+                const status = normalizeStatus(
+                    invitationData.invitation.group_status
+                );
+
+                if (status === RESPONSE_STATUS.EXPIRED) {
+                    setOverlayVisibility(false);
+                    elements.invitationContainer.classList.remove('active');
+
+                    renderStateMessage({
+                        title: 'Invitación expirada',
+                        message: 'El tiempo para confirmar esta invitación ha terminado.',
+                        icon: 'fa-clock'
+                    });
+
                     return;
                 }
 
-                loader.style.display = 'none';
-                sobreOverlay.classList.remove('hidden');
-                invitacionContainer.classList.remove('active');
+                elements.loader.hidden = true;
 
-                sobreBtn.addEventListener('click', function abrir() {
-                    sobreOverlay.classList.add('hidden');
-                    invitacionContainer.classList.add('active');
-                    renderInvitation(data);
-                    sobreBtn.removeEventListener('click', abrir);
+                if (showEnvelope && !envelopeOpened) {
+                    setOverlayVisibility(true);
+                    elements.invitationContainer.classList.remove('active');
+                    elements.envelopeButton.focus();
+                    return;
+                }
+
+                setOverlayVisibility(false);
+                elements.invitationContainer.classList.add('active');
+                renderInvitation(invitationData);
+            } catch (error) {
+                setOverlayVisibility(false);
+                elements.invitationContainer.classList.remove('active');
+
+                let title = 'No fue posible cargar la invitación';
+                let message = error.message;
+
+                if (error.status === 404) {
+                    title = 'Invitación no encontrada';
+                    message = 'Verifica que el enlace esté completo y sea correcto.';
+                } else if (error.status === 410) {
+                    title = 'Invitación expirada';
+                    message = 'El tiempo para confirmar esta invitación ha terminado.';
+                }
+
+                renderStateMessage({
+                    title,
+                    message
                 });
 
-            } catch (error) {
-                loader.innerHTML = `<p style="color:#c0392b;">❌ ${error.message}</p>`;
-                showToast(error.message, 'error');
+                showToast(message, 'error');
             }
         }
 
+        function openEnvelope() {
+            if (!invitationData || envelopeOpened) {
+                return;
+            }
+
+            envelopeOpened = true;
+            setOverlayVisibility(false);
+            elements.invitationContainer.classList.add('active');
+            renderInvitation(invitationData);
+
+            window.requestAnimationFrame(() => {
+                elements.invitationContainer.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            });
+        }
+
         // ==============================================================
-        // RENDERIZAR INVITACIÓN
+        // RENDER DE LA INVITACIÓN
         // ==============================================================
+        function normalizeStatus(status) {
+            const normalized = normalizeText(status).toUpperCase();
+
+            if (Object.values(RESPONSE_STATUS).includes(normalized)) {
+                return normalized;
+            }
+
+            return RESPONSE_STATUS.PENDING;
+        }
+
+        function buildResponseSection(status, isForeign) {
+            if (status === RESPONSE_STATUS.PENDING) {
+                return `
+                    <div class="bloque-seccion bloque-claro" id="bloque-confirmacion">
+                        <h3 class="subtitulo-elegante" style="color:var(--verde-oscuro);">
+                            Confirmar Asistencia
+                        </h3>
+
+                        <div class="botones-confirmacion">
+                            ${
+                                isForeign
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="btn btn-confirmar"
+                                            data-response-status="${RESPONSE_STATUS.CONFIRMED}"
+                                        >
+                                            Asistiré presencialmente
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-confirmar"
+                                            data-response-status="${RESPONSE_STATUS.VIRTUAL}"
+                                        >
+                                            Asistiré virtualmente
+                                        </button>
+                                    `
+                                    : `
+                                        <button
+                                            type="button"
+                                            class="btn btn-confirmar"
+                                            data-response-status="${RESPONSE_STATUS.CONFIRMED}"
+                                        >
+                                            Confirmar asistencia
+                                        </button>
+                                    `
+                            }
+
+                            <button
+                                type="button"
+                                class="btn btn-no-asistir"
+                                data-response-status="${RESPONSE_STATUS.REJECTED}"
+                            >
+                                No podré asistir
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const stateContent = {
+                [RESPONSE_STATUS.CONFIRMED]: {
+                    icon: 'fa-check-circle',
+                    title: '¡Asistencia confirmada!',
+                    message: 'Tu respuesta fue registrada. ¡Te esperamos con mucho cariño!',
+                    includeCalendar: true
+                },
+                [RESPONSE_STATUS.VIRTUAL]: {
+                    icon: 'fa-video',
+                    title: '¡Asistencia virtual confirmada!',
+                    message: 'Tu respuesta fue registrada. Compartiremos el enlace de transmisión cuando esté disponible.',
+                    includeCalendar: true
+                },
+                [RESPONSE_STATUS.REJECTED]: {
+                    icon: 'fa-envelope',
+                    title: 'Respuesta registrada',
+                    message: 'Lamentamos que no puedas acompañarnos. Gracias por responder.',
+                    includeCalendar: false
+                }
+            };
+
+            const state = stateContent[status] || {
+                icon: 'fa-check-circle',
+                title: 'Respuesta registrada',
+                message: 'Tu respuesta fue guardada correctamente.',
+                includeCalendar: false
+            };
+
+            return `
+                <div class="bloque-seccion bloque-claro">
+                    <div class="ya-confirmado">
+                        <i class="fas ${state.icon}" aria-hidden="true"></i>
+                        <h3>${state.title}</h3>
+                        <p>${state.message}</p>
+
+                        ${
+                            state.includeCalendar
+                                ? `
+                                    <button
+                                        type="button"
+                                        class="btn btn-calendario"
+                                        data-action="download-calendar"
+                                    >
+                                        <i class="fas fa-calendar-plus" aria-hidden="true"></i>
+                                        Agregar a mi calendario
+                                    </button>
+                                `
+                                : ''
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
         function renderInvitation(data) {
-            const inv = data.invitation;
-            const family = data.family_members || [];
-            const isForeign = inv.is_foreign || false;
+            stopCountdown();
 
-            // Verificar si ya está confirmada (cualquier estado que no sea PENDING)
-            const yaConfirmado = inv.group_status !== 'PENDING';
+            const invitation = data.invitation;
+            const familyMembers = Array.isArray(data.family_members)
+                ? data.family_members
+                : [];
 
-            let html = `
+            const primaryGuest = escapeHtml(
+                normalizeText(invitation.primary_guest) || 'Invitado'
+            );
+            const status = normalizeStatus(invitation.group_status);
+            const isForeign = Boolean(invitation.is_foreign);
 
-                        <!-- ===== BLOQUE 1: FOTO Y NOMBRES ===== -->
-                        <div class="bloque-seccion bloque-oscuro">
-                            <div class="contenedor-foto">
-                                <img src="https://torrealbaexio-prog.github.io/invitacion-boda/foto1.jpeg" alt="Dayana y Exio" class="foto-boda">
-                            </div>
-                            <h1 class="nombres-novios">Dayana</h1>
-                            <div class="ampersand">&amp;</div>
-                            <h1 class="nombres-novios">Exio</h1>
+            const familyHtml = familyMembers
+                .map((member) => {
+                    const name = escapeHtml(
+                        normalizeText(member?.name) || 'Acompañante'
+                    );
+
+                    return `<li class="pase-item">${name}</li>`;
+                })
+                .join('');
+
+            elements.invitationContent.innerHTML = `
+                <div class="bloque-seccion bloque-oscuro">
+                    <div class="contenedor-foto">
+                        <img
+                            src="https://torrealbaexio-prog.github.io/invitacion-boda/foto1.jpeg"
+                            alt="Dayana y Exio"
+                            class="foto-boda"
+                            width="180"
+                            height="180"
+                            decoding="async"
+                        >
+                    </div>
+
+                    <h1 class="nombres-novios">Dayana</h1>
+                    <div class="ampersand">&amp;</div>
+                    <h1 class="nombres-novios">Exio</h1>
+                </div>
+
+                <div class="divisor-dorado"></div>
+
+                <div class="bloque-seccion bloque-claro">
+                    <h2 class="texto-invitado">
+                        ¡Hola, <span>${primaryGuest}</span>!
+                    </h2>
+
+                    <div class="versiculo">
+                        “Si alguno prevalece contra el que está solo, dos estarán contra él,
+                        pues cordón de tres dobleces no se rompe pronto.”
+                        <span class="cita-versiculo">Eclesiastés 4:12</span>
+                    </div>
+
+                    <p class="introduccion-texto">
+                        Hemos decidido unir nuestras vidas en matrimonio y nos llenaría
+                        de alegría contar con su compañía. Invitamos a las siguientes
+                        personas de su familia:
+                    </p>
+
+                    <div class="lista-pases-contenedor">
+                        <ul id="lista-pases-dinamica">
+                            <li class="pase-item">${primaryGuest}</li>
+                            ${familyHtml}
+                        </ul>
+                    </div>
+
+                    <p class="nota-aclaratoria">
+                        * Cupos limitados. Velada exclusivamente para adultos.
+                    </p>
+                </div>
+
+                <div class="divisor-dorado"></div>
+
+                <div class="bloque-seccion bloque-oscuro">
+                    <h3 class="subtitulo-elegante">SAVE THE DATE</h3>
+                    <h4 class="fecha-texto">Enero 8, 2027</h4>
+
+                    <div id="contador" class="contador-display" aria-label="Cuenta regresiva para la boda">
+                        <div class="unidad-tiempo">
+                            <span id="dias" class="numero">--</span>
+                            <span class="etiqueta">Días</span>
                         </div>
 
-                        <div class="divisor-dorado"></div>
-
-                        <!-- ===== BLOQUE 2: SALUDO Y LISTA ===== -->
-                        <div class="bloque-seccion bloque-claro">
-                            <h2 class="texto-invitado">¡Hola, <span id="nombre-invitado">${inv.primary_guest}</span>!</h2>
-
-                            <div class="versiculo">
-                                "Si alguno prevalece contra el que está solo, dos estarán contra él, pues cordón de tres dobleces no se rompe pronto."
-                                <span class="cita-versiculo">Eclesiastés 4,12</span>
-                            </div>
-
-                            <p class="introduccion-texto">
-                                Hemos decidido unir nuestras vidas en matrimonio y nos llenaría de alegría contar con su compañía. Invitamos a las siguientes personas de su familia:
-                            </p>
-
-                            <div class="lista-pases-contenedor">
-                                <ul id="lista-pases-dinamica">
-                                    <li class="pase-item">${inv.primary_guest}</li>
-                                    ${family.map(m => `<li class="pase-item">${m.name}</li>`).join('')}
-                                </ul>
-                            </div>
-
-                            <p class="nota-aclaratoria">* Cupos limitados. Velada exclusivamente para adultos.</p>
+                        <div class="unidad-tiempo">
+                            <span id="horas" class="numero">--</span>
+                            <span class="etiqueta">Horas</span>
                         </div>
 
-                        <div class="divisor-dorado"></div>
-
-                        <!-- ===== BLOQUE 3: SAVE THE DATE ===== -->
-                        <div class="bloque-seccion bloque-oscuro">
-                            <h3 class="subtitulo-elegante">SAVE THE DATE</h3>
-                            <h4 class="fecha-texto">Enero 8, 2027</h4>
-                            <div id="contador" class="contador-display">
-                                <div class="unidad-tiempo"><span id="dias" class="numero">--</span><span class="etiqueta">Días</span></div>
-                                <div class="unidad-tiempo"><span id="horas" class="numero">--</span><span class="etiqueta">Horas</span></div>
-                                <div class="unidad-tiempo"><span id="minutos" class="numero">--</span><span class="etiqueta">Min</span></div>
-                                <div class="unidad-tiempo"><span id="segundos" class="numero">--</span><span class="etiqueta">Seg</span></div>
-                            </div>
+                        <div class="unidad-tiempo">
+                            <span id="minutos" class="numero">--</span>
+                            <span class="etiqueta">Min</span>
                         </div>
 
-                        <div class="divisor-dorado"></div>
+                        <div class="unidad-tiempo">
+                            <span id="segundos" class="numero">--</span>
+                            <span class="etiqueta">Seg</span>
+                        </div>
+                    </div>
+                </div>
 
-                        <!-- ===== BLOQUE 4: RECEPCIÓN ===== -->
-                        <div class="bloque-seccion bloque-claro">
-                            <h3 class="subtitulo-elegante cursivo">Recepción</h3>
-                            <p class="datos-lugar"><strong>Lugar:</strong> La terraza del portón, Cúcuta</p>
-                            <div class="grupo-mapas">
-                                <a href="https://maps.google.com/?q=La+terraza+del+porton+Cucuta" target="_blank" class="btn btn-maps">
-                                    <i class="fas fa-map-marker-alt"></i> Google Maps
-                                </a>
-                                <a href="https://waze.com/ul?q=La+terraza+del+porton+Cucuta" target="_blank" class="btn btn-waze">
-                                    <i class="fab fa-waze"></i> Waze
-                                </a>
-                            </div>
+                <div class="divisor-dorado"></div>
+
+                <div class="bloque-seccion bloque-claro">
+                    <h3 class="subtitulo-elegante cursivo">Recepción</h3>
+                    <p class="datos-lugar">
+                        <strong>Lugar:</strong> La Terraza del Portón, Cúcuta
+                    </p>
+
+                    <div class="grupo-mapas">
+                        <a
+                            href="https://maps.google.com/?q=La+terraza+del+porton+Cucuta"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn btn-maps"
+                        >
+                            <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                            Google Maps
+                        </a>
+
+                        <a
+                            href="https://waze.com/ul?q=La+terraza+del+porton+Cucuta"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn btn-waze"
+                        >
+                            <i class="fab fa-waze" aria-hidden="true"></i>
+                            Waze
+                        </a>
+                    </div>
+                </div>
+
+                <div class="divisor-dorado"></div>
+
+                <div class="bloque-seccion bloque-oscuro">
+                    <div class="contenedor-foto">
+                        <img
+                            src="https://torrealbaexio-prog.github.io/invitacion-boda/foto2.jpeg"
+                            alt="Dayana y Exio"
+                            class="foto-boda"
+                            width="180"
+                            height="180"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                    </div>
+
+                    <p style="font-style:italic; font-family:var(--font-serif); text-align:center; color:var(--blanco); font-size:1.1rem;">
+                        “Por encima de todo, vístanse de amor, que es el vínculo perfecto.”
+                    </p>
+                </div>
+
+                <div class="divisor-dorado"></div>
+
+                <div class="bloque-seccion bloque-claro">
+                    <h3 class="subtitulo-elegante">DRESS CODE</h3>
+
+                    <p class="aviso-colores">
+                        Respetuosamente les solicitamos reservar los siguientes colores
+                        para uso exclusivo de la novia:
+                    </p>
+
+                    <div class="colores-prohibidos">
+                        <div class="item-color">
+                            <span class="circulo-color blanco" aria-hidden="true"></span>
+                            Blanco
                         </div>
 
-                        <div class="divisor-dorado"></div>
-
-                        <!-- ===== BLOQUE 5: CITA Y FOTO ===== -->
-                        <div class="bloque-seccion bloque-oscuro">
-                            <div class="contenedor-foto">
-                                <img src="https://torrealbaexio-prog.github.io/invitacion-boda/foto2.jpeg" alt="Dayana y Exio" class="foto-boda">
-                            </div>
-                            <p style="font-style: italic; font-family: var(--font-serif); text-align:center; color: var(--blanco); font-size: 1.1rem;">
-                                "Por encima de todo, vístanse de amor, que es el vínculo perfecto."
-                            </p>
+                        <div class="item-color">
+                            <span class="circulo-color verde" aria-hidden="true"></span>
+                            Verde
                         </div>
 
-                        <div class="divisor-dorado"></div>
-
-                        <!-- ===== BLOQUE 6: DRESS CODE ===== -->
-                        <div class="bloque-seccion bloque-claro">
-                            <h3 class="subtitulo-elegante">DRESS CODE</h3>
-                            <p class="aviso-colores">Respetuosamente les solicitamos reservar los siguientes colores de uso exclusivo de la novia:</p>
-                            <div class="colores-prohibidos">
-                                <div class="item-color"><span class="circulo-color blanco"></span> Blanco</div>
-                                <div class="item-color"><span class="circulo-color verde"></span> Verde</div>
-                                <div class="item-color"><span class="circulo-color beige"></span> Beige</div>
-                                <div class="item-color"><span class="circulo-color azul"></span> Azul</div>
-                            </div>
+                        <div class="item-color">
+                            <span class="circulo-color beige" aria-hidden="true"></span>
+                            Beige
                         </div>
 
-                        <div class="divisor-dorado"></div>
+                        <div class="item-color">
+                            <span class="circulo-color azul" aria-hidden="true"></span>
+                            Azul
+                        </div>
+                    </div>
+                </div>
 
-                        <!-- ===== BLOQUE 7: TRANSMISIÓN VIRTUAL (solo si es foreign) ===== -->
-                        ${isForeign ? `
+                <div class="divisor-dorado"></div>
+
+                ${
+                    isForeign
+                        ? `
                             <div class="bloque-seccion bloque-oscuro">
                                 <h3 class="subtitulo-elegante">Transmisión Virtual</h3>
+
                                 <div style="text-align:center;">
-                                    <a href="https://youtube.com" target="_blank" class="btn btn-transmision">
-                                        <i class="fas fa-video"></i> UNIRSE A LA TRANSMISIÓN
+                                    <a
+                                        href="https://youtube.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="btn btn-transmision"
+                                    >
+                                        <i class="fas fa-video" aria-hidden="true"></i>
+                                        UNIRSE A LA TRANSMISIÓN
                                     </a>
                                 </div>
                             </div>
-                            <div class="divisor-dorado"></div>
-                        ` : ''}
 
-                        <!-- ===== BLOQUE 8: CONFIRMAR ASISTENCIA ===== -->
+                            <div class="divisor-dorado"></div>
+                        `
+                        : ''
+                }
+
+                ${buildResponseSection(status, isForeign)}
             `;
 
-            if (yaConfirmado) {
-                // Mensaje de ya confirmado
-                html += `
-                            <div class="bloque-seccion bloque-claro">
-                                <div class="ya-confirmado">
-                                    <i class="fas fa-check-circle"></i>
-                                    <h3>¡Ya confirmaste tu asistencia!</h3>
-                                    <p>Tu respuesta fue registrada. ¡Te esperamos con mucho cariño!</p>
-                                    <button class="btn btn-calendario" id="btnCalendarioYaConfirmado">
-                                        <i class="fas fa-calendar-plus"></i> Agregar a mi calendario
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-            } else {
-                // Botones de confirmación
-                html += `
-                            <div class="bloque-seccion bloque-claro" id="bloque-confirmacion">
-                                <h3 class="subtitulo-elegante" style="color:var(--verde-oscuro);">Confirmar Asistencia</h3>
-                                <div class="botones-confirmacion">
-                                    ${isForeign ? `
-                                        <button class="btn btn-confirmar" data-status="CONFIRMED">Asistiré presencialmente</button>
-                                        <button class="btn btn-confirmar" data-status="VIRTUAL">Asistiré virtualmente</button>
-                                    ` : `
-                                        <button class="btn btn-confirmar" data-status="CONFIRMED">Confirmar asistencia</button>
-                                    `}
-                                    <button class="btn btn-no-asistir" data-status="REJECTED">No podré asistir</button>
-                                </div>
-                            </div>
-                        `;
-            }
+            startCountdown();
+            bindInvitationActions(status);
+        }
 
-            content.innerHTML = html;
-
-            // Iniciar contador
-            iniciarContador();
-
-            // ==========================================================
-            // SI YA CONFIRMADO: asignar evento al botón de calendario
-            // ==========================================================
-            if (yaConfirmado) {
-                const btnCalendario = document.getElementById('btnCalendarioYaConfirmado');
-                if (btnCalendario) {
-                    btnCalendario.addEventListener('click', descargarCalendario);
-                }
-                return; // No continuar con la lógica de confirmación
-            }
-
-            // ==========================================================
-            // LÓGICA DE CONFIRMACIÓN (no confirmado)
-            // ==========================================================
-            const botonesConfirmacion = document.querySelectorAll('.botones-confirmacion .btn');
-            const modalOverlay = document.getElementById('modalConfirmacion');
-            const modalLista = document.getElementById('modalListaCheckboxes');
-            const btnCalendarioModal = document.getElementById('btnCalendarioModal');
-            const btnConfirmarModal = document.getElementById('btnConfirmarModal');
-            const cerrarModalBtn = document.getElementById('cerrarModalConfirmacion');
-
-            // Al hacer clic en un botón de confirmación
-            botonesConfirmacion.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const status = this.dataset.status; // 'CONFIRMED', 'VIRTUAL', 'REJECTED'
-
-                    if (status === 'REJECTED') {
-                        // Enviar directamente la respuesta sin abrir modal
-                        enviarConfirmacionDirecta('REJECTED');
-                        return;
-                    }
-
-                    // Abrir modal para CONFIRMED o VIRTUAL
-                    abrirModalConfirmacion(status);
+        function bindInvitationActions(status) {
+            elements.invitationContent
+                .querySelectorAll('[data-action="download-calendar"]')
+                .forEach((button) => {
+                    button.addEventListener('click', downloadCalendar);
                 });
-            });
 
-            function abrirModalConfirmacion(status) {
-                // Construir lista de checkboxes en el modal
-                const familyMembers = invitationData.family_members || [];
-                let modalHtml = `
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="modal_check_principal" checked disabled>
-                                <label for="modal_check_principal" class="nombre-principal">${invitationData.invitation.primary_guest} (tú)</label>
-                            </div>
-                        `;
-                familyMembers.forEach(m => {
-                    modalHtml += `
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="modal_check_${m.id}" ${m.is_attending === true ? 'checked' : ''}>
-                                    <label for="modal_check_${m.id}">${m.name}</label>
-                                </div>
-                            `;
-                });
-                modalLista.innerHTML = modalHtml;
-
-                // Almacenar el estado en el modal para usarlo al confirmar
-                modalOverlay.dataset.status = status;
-
-                // Mostrar modal
-                modalOverlay.classList.add('activo');
+            if (status !== RESPONSE_STATUS.PENDING) {
+                return;
             }
 
-            // Cerrar modal
-            cerrarModalBtn.addEventListener('click', () => {
-                modalOverlay.classList.remove('activo');
+            elements.invitationContent
+                .querySelectorAll('[data-response-status]')
+                .forEach((button) => {
+                    button.addEventListener('click', async () => {
+                        const responseStatus = normalizeStatus(
+                            button.dataset.responseStatus
+                        );
+
+                        if (responseStatus === RESPONSE_STATUS.REJECTED) {
+                            const accepted = window.confirm(
+                                '¿Confirmas que ninguna persona de este grupo podrá asistir?'
+                            );
+
+                            if (!accepted) {
+                                return;
+                            }
+
+                            const familyResponses = getFamilyMembers().map(
+                                (member) => ({
+                                    id: String(member.id),
+                                    is_attending: false
+                                })
+                            );
+
+                            await submitResponse(
+                                RESPONSE_STATUS.REJECTED,
+                                familyResponses
+                            );
+
+                            return;
+                        }
+
+                        openConfirmationModal(responseStatus);
+                    });
+                });
+        }
+
+        // ==============================================================
+        // MODAL DE CONFIRMACIÓN
+        // ==============================================================
+        function getFamilyMembers() {
+            return Array.isArray(invitationData?.family_members)
+                ? invitationData.family_members.filter(
+                    (member) => member && member.id !== undefined
+                )
+                : [];
+        }
+
+        function createCheckboxRow({
+            id,
+            name,
+            checked = false,
+            disabled = false,
+            isPrimary = false
+        }) {
+            const row = document.createElement('div');
+            row.className = 'checkbox-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = id;
+            checkbox.checked = checked;
+            checkbox.disabled = disabled;
+
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = name;
+
+            if (isPrimary) {
+                label.classList.add('nombre-principal');
+            }
+
+            row.append(checkbox, label);
+            return row;
+        }
+
+        function openConfirmationModal(status) {
+            pendingResponseStatus = status;
+            lastFocusedElement = document.activeElement;
+
+            const isVirtual = status === RESPONSE_STATUS.VIRTUAL;
+            const primaryGuest =
+                normalizeText(invitationData?.invitation?.primary_guest) ||
+                'Invitado principal';
+
+            elements.modalTitle.textContent = isVirtual
+                ? 'Confirmar asistencia virtual'
+                : 'Confirmar asistencia presencial';
+
+            elements.modalMessage.textContent = isVirtual
+                ? 'Selecciona las personas que participarán virtualmente.'
+                : 'Selecciona las personas que asistirán presencialmente.';
+
+            elements.modalInstruction.textContent =
+                'El invitado principal está incluido automáticamente.';
+
+            elements.modalList.replaceChildren();
+
+            elements.modalList.appendChild(
+                createCheckboxRow({
+                    id: 'modal_check_principal',
+                    name: `${primaryGuest} (invitado principal)`,
+                    checked: true,
+                    disabled: true,
+                    isPrimary: true
+                })
+            );
+
+            getFamilyMembers().forEach((member, index) => {
+                const memberName =
+                    normalizeText(member.name) || `Acompañante ${index + 1}`;
+                const checkboxId = `modal_check_member_${index}`;
+
+                const row = createCheckboxRow({
+                    id: checkboxId,
+                    name: memberName,
+                    checked: member.is_attending === true
+                });
+
+                const checkbox = row.querySelector('input');
+                checkbox.dataset.memberId = String(member.id);
+
+                elements.modalList.appendChild(row);
             });
-            modalOverlay.addEventListener('click', (e) => {
-                if (e.target === modalOverlay) {
-                    modalOverlay.classList.remove('activo');
-                }
-            });
 
-            // Botón calendario dentro del modal
-            btnCalendarioModal.addEventListener('click', descargarCalendario);
+            elements.modalConfirmButton.disabled = false;
+            elements.modalConfirmButton.innerHTML = isVirtual
+                ? '<i class="fas fa-video" aria-hidden="true"></i> Confirmar asistencia virtual'
+                : '<i class="fas fa-check" aria-hidden="true"></i> Confirmar asistencia';
 
-            // Botón confirmar dentro del modal
-            btnConfirmarModal.addEventListener('click', function() {
-                const status = modalOverlay.dataset.status || 'CONFIRMED';
-                enviarConfirmacionDesdeModal(status);
-            });
+            elements.modal.classList.add('activo');
+            elements.modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            elements.modalCloseButton.focus();
+        }
 
-            // ==========================================================
-            // FUNCIONES DE ENVÍO
-            // ==========================================================
-            async function enviarConfirmacionDirecta(status) {
-                // Para "REJECTED", todos los miembros en false
-                const familyMembers = invitationData.family_members || [];
-                const responses = familyMembers.map(m => ({ id: m.id, is_attending: false }));
+        function closeConfirmationModal() {
+            if (isSubmitting) {
+                return;
+            }
 
+            elements.modal.classList.remove('activo');
+            elements.modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            pendingResponseStatus = null;
+
+            if (
+                lastFocusedElement &&
+                typeof lastFocusedElement.focus === 'function'
+            ) {
+                lastFocusedElement.focus();
+            }
+        }
+
+        function collectModalResponses() {
+            return Array.from(
+                elements.modalList.querySelectorAll(
+                    'input[type="checkbox"][data-member-id]'
+                )
+            ).map((checkbox) => ({
+                id: checkbox.dataset.memberId,
+                is_attending: checkbox.checked
+            }));
+        }
+
+        async function handleModalConfirmation() {
+            if (
+                !pendingResponseStatus ||
+                ![
+                    RESPONSE_STATUS.CONFIRMED,
+                    RESPONSE_STATUS.VIRTUAL
+                ].includes(pendingResponseStatus)
+            ) {
+                showToast('No se seleccionó una respuesta válida.', 'error');
+                return;
+            }
+
+            await submitResponse(
+                pendingResponseStatus,
+                collectModalResponses()
+            );
+        }
+
+        // ==============================================================
+        // ENVÍO DE RESPUESTAS
+        // ==============================================================
+        function setResponseButtonsDisabled(disabled) {
+            elements.invitationContent
+                .querySelectorAll('[data-response-status]')
+                .forEach((button) => {
+                    button.disabled = disabled;
+                });
+        }
+
+        async function submitResponse(status, responses) {
+            if (isSubmitting) {
+                return;
+            }
+
+            isSubmitting = true;
+            setResponseButtonsDisabled(true);
+
+            const originalButtonContent =
+                elements.modalConfirmButton.innerHTML;
+
+            if (elements.modal.classList.contains('activo')) {
+                elements.modalConfirmButton.disabled = true;
+                elements.modalConfirmButton.innerHTML =
+                    '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Enviando...';
+            }
+
+            try {
                 const payload = {
-                    uuid: getInvitationId(),
-                    responses: responses,
-                    status: status // 'REJECTED'
+                    uuid: invitationId,
+                    status,
+                    responses: responses.map((response) => ({
+                        id: String(response.id),
+                        is_attending: Boolean(response.is_attending)
+                    }))
                 };
 
-                try {
-                    const res = await fetch(`${API_BASE}/api/public/respond`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Error al confirmar');
-
-                    showToast('¡Respuesta enviada con éxito!', 'success');
-                    // Recargar para mostrar el mensaje de "ya confirmado"
-                    setTimeout(() => loadInvitation(), 1000);
-                } catch (err) {
-                    showToast(err.message, 'error');
-                }
-            }
-
-            async function enviarConfirmacionDesdeModal(status) {
-                // Recoger checkboxes del modal (excluyendo el principal que está disabled)
-                const checkboxes = document.querySelectorAll('#modalListaCheckboxes .checkbox-item input[type="checkbox"]:not([disabled])');
-                const responses = [];
-                checkboxes.forEach(cb => {
-                    const id = cb.id.replace('modal_check_', '');
-                    if (id !== 'principal') {
-                        responses.push({ id, is_attending: cb.checked });
-                    }
+                await fetchJson(`${CONFIG.API_BASE}/api/public/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
                 });
 
-                const payload = {
-                    uuid: getInvitationId(),
-                    responses: responses,
-                    status: status // 'CONFIRMED' o 'VIRTUAL'
+                elements.modal.classList.remove('activo');
+                elements.modal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+
+                const successMessages = {
+                    [RESPONSE_STATUS.CONFIRMED]:
+                        'Tu asistencia presencial fue confirmada.',
+                    [RESPONSE_STATUS.VIRTUAL]:
+                        'Tu asistencia virtual fue confirmada.',
+                    [RESPONSE_STATUS.REJECTED]:
+                        'Tu respuesta fue registrada.'
                 };
 
-                // Deshabilitar botón
-                btnConfirmarModal.disabled = true;
-                btnConfirmarModal.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                showToast(
+                    successMessages[status] ||
+                        'Tu respuesta fue registrada correctamente.',
+                    'success'
+                );
 
-                try {
-                    const res = await fetch(`${API_BASE}/api/public/respond`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Error al confirmar');
+                await loadInvitation({
+                    showEnvelope: false
+                });
+            } catch (error) {
+                let message = error.message;
 
-                    modalOverlay.classList.remove('activo');
-                    showToast('¡Respuesta enviada con éxito!', 'success');
-                    // Recargar
-                    setTimeout(() => loadInvitation(), 1000);
-                } catch (err) {
-                    showToast(err.message, 'error');
-                    btnConfirmarModal.disabled = false;
-                    btnConfirmarModal.innerHTML = '<i class="fas fa-check"></i> Confirmar asistencia';
+                if (error.status === 409) {
+                    message = 'Esta invitación ya fue respondida.';
+                } else if (error.status === 410) {
+                    message = 'Esta invitación ya expiró.';
                 }
+
+                showToast(message, 'error');
+            } finally {
+                isSubmitting = false;
+                setResponseButtonsDisabled(false);
+                elements.modalConfirmButton.disabled = false;
+                elements.modalConfirmButton.innerHTML =
+                    originalButtonContent;
             }
         }
 
         // ==============================================================
         // CONTADOR REGRESIVO
         // ==============================================================
-        function iniciarContador() {
-            const fechaBoda = new Date('2027-01-08T18:00:00-05:00').getTime();
+        function stopCountdown() {
+            if (countdownIntervalId !== null) {
+                window.clearInterval(countdownIntervalId);
+                countdownIntervalId = null;
+            }
+        }
 
-            function actualizarContador() {
-                const ahora = Date.now();
-                const diff = fechaBoda - ahora;
+        function startCountdown() {
+            stopCountdown();
 
-                if (diff <= 0) {
-                    document.getElementById('dias').textContent = '0';
-                    document.getElementById('horas').textContent = '0';
-                    document.getElementById('minutos').textContent = '0';
-                    document.getElementById('segundos').textContent = '0';
+            const weddingTime = new Date(CONFIG.WEDDING_START).getTime();
+
+            function updateCountdown() {
+                const daysElement = document.getElementById('dias');
+                const hoursElement = document.getElementById('horas');
+                const minutesElement = document.getElementById('minutos');
+                const secondsElement = document.getElementById('segundos');
+
+                if (
+                    !daysElement ||
+                    !hoursElement ||
+                    !minutesElement ||
+                    !secondsElement
+                ) {
+                    stopCountdown();
                     return;
                 }
 
-                const dias = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const horas = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutos = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const segundos = Math.floor((diff % (1000 * 60)) / 1000);
+                const difference = weddingTime - Date.now();
 
-                document.getElementById('dias').textContent = dias;
-                document.getElementById('horas').textContent = String(horas).padStart(2, '0');
-                document.getElementById('minutos').textContent = String(minutos).padStart(2, '0');
-                document.getElementById('segundos').textContent = String(segundos).padStart(2, '0');
+                if (difference <= 0) {
+                    daysElement.textContent = '0';
+                    hoursElement.textContent = '00';
+                    minutesElement.textContent = '00';
+                    secondsElement.textContent = '00';
+                    stopCountdown();
+                    return;
+                }
+
+                const days = Math.floor(
+                    difference / (1000 * 60 * 60 * 24)
+                );
+                const hours = Math.floor(
+                    (difference % (1000 * 60 * 60 * 24)) /
+                        (1000 * 60 * 60)
+                );
+                const minutes = Math.floor(
+                    (difference % (1000 * 60 * 60)) /
+                        (1000 * 60)
+                );
+                const seconds = Math.floor(
+                    (difference % (1000 * 60)) / 1000
+                );
+
+                daysElement.textContent = String(days);
+                hoursElement.textContent = String(hours).padStart(2, '0');
+                minutesElement.textContent = String(minutes).padStart(2, '0');
+                secondsElement.textContent = String(seconds).padStart(2, '0');
             }
 
-            actualizarContador();
-            setInterval(actualizarContador, 1000);
+            updateCountdown();
+            countdownIntervalId = window.setInterval(updateCountdown, 1000);
         }
 
         // ==============================================================
-        // INICIAR
+        // EVENTOS GLOBALES
+        // ==============================================================
+        elements.envelopeButton.addEventListener('click', openEnvelope);
+
+        elements.envelopeButton.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openEnvelope();
+            }
+        });
+
+        elements.modalCloseButton.addEventListener(
+            'click',
+            closeConfirmationModal
+        );
+
+        elements.modal.addEventListener('click', (event) => {
+            if (event.target === elements.modal) {
+                closeConfirmationModal();
+            }
+        });
+
+        elements.modalConfirmButton.addEventListener(
+            'click',
+            handleModalConfirmation
+        );
+
+        elements.modalCalendarButton.addEventListener(
+            'click',
+            downloadCalendar
+        );
+
+        document.addEventListener('keydown', (event) => {
+            if (
+                event.key === 'Escape' &&
+                elements.modal.classList.contains('activo')
+            ) {
+                closeConfirmationModal();
+            }
+        });
+
+        window.addEventListener('beforeunload', stopCountdown);
+
+        // ==============================================================
+        // INICIO
         // ==============================================================
         loadInvitation();
     </script>
