@@ -707,24 +707,68 @@
         const loginError = document.getElementById('loginError');
 
         async function login(password) {
+            loginBtn.disabled = true;
+            loginError.textContent = '';
+        
             try {
-                const res = await fetch(`${API_BASE}/api/auth/login`, {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        password
+                    })
                 });
-                const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.error || 'Credenciales inválidas');
+            
+                const contentType = response.headers.get('content-type') || '';
+                const isJson = contentType.includes('application/json');
+            
+                const data = isJson
+                    ? await response.json()
+                    : {
+                        error: await response.text()
+                    };
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(
+                            'La ruta de autenticación no está disponible en el deployment.'
+                        );
+                    }
+                
+                    throw new Error(
+                        data.error || 'No fue posible iniciar sesión.'
+                    );
                 }
+            
+                if (!data.token) {
+                    throw new Error(
+                        'El servidor no devolvió un token de autenticación.'
+                    );
+                }
+            
                 sessionStorage.setItem('token', data.token);
+            
                 loginModal.classList.add('hidden');
-                document.getElementById('panelContainer').classList.add('active');
-                loadInvitations();
-                showToast('¡Bienvenido al panel de administración!', 'success');
-            } catch (err) {
-                loginError.textContent = err.message;
-                showToast(err.message, 'error');
+                document
+                    .getElementById('panelContainer')
+                    .classList.add('active');
+            
+                await loadInvitations();
+            
+                showToast(
+                    '¡Bienvenido al panel de administración!',
+                    'success'
+                );
+            } catch (error) {
+                console.error('Login error:', error);
+            
+                loginError.textContent = error.message;
+                showToast(error.message, 'error');
+            } finally {
+                loginBtn.disabled = false;
             }
         }
 
