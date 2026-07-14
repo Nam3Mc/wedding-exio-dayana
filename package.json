@@ -1,17 +1,13 @@
 {
   "name": "wedding_exio_dayana",
   "version": "1.0.0",
-  "description": "",
-  "main": "api/index.js",
   "type": "module",
+  "description": "Boda Dayana y Exio - Sistema de invitaciones",
+  "main": "api/index.js",
   "scripts": {
     "dev": "nodemon api/index.js",
-    "start": "node api/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node api/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -21,6 +17,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
-  },
-    "packageManager": "pnpm@8.15.4"
+  }
 }
