@@ -10,24 +10,21 @@ import auth from './auth.js';
 import adminRoutes from './routes/admin.js';
 import publicRoutes from './routes/public.js';
 
-// Configurar __dirname en ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Cargar variables de entorno
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors()); // Permite peticiones desde cualquier origen
-app.use(express.json()); // Parsear JSON
+app.use(cors());
+app.use(express.json());
 
-// Servir archivos estáticos desde la carpeta 'public'
+// Servir archivos estáticos (para desarrollo)
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ========== RUTA DE LOGIN (pública) ==========
+// ========== LOGIN ==========
 app.post('/api/auth/login', async (req, res) => {
   const { password } = req.body;
   try {
@@ -46,25 +43,24 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/invite/:uuid', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/invitation.html'));
-});
-
-// ========== RUTAS ADMIN (protegidas) ==========
+// ========== RUTAS ADMIN Y PÚBLICAS ==========
 app.use('/api/invitations', adminRoutes(pool, auth));
-
-// ========== RUTAS PÚBLICAS ==========
 app.use('/api/public', publicRoutes(pool));
 
-
-
-// ========== MANEJADOR DE ERRORES GENÉRICO ==========
+// ========== MANEJADOR DE ERRORES ==========
 app.use((err, req, res, next) => {
   console.error('Error no capturado:', err);
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-// ========== INICIAR SERVIDOR ==========
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
-});
+// ========== INICIAR SERVIDOR (solo en desarrollo) ==========
+const PORT = process.env.PORT || 3000;
+// Si NO estamos en producción (Vercel), ejecutamos app.listen
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
+  });
+}
+
+// ========== EXPORTAR para Vercel ==========
+export default app;

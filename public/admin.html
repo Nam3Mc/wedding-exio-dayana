@@ -855,7 +855,7 @@
                 if (!res.ok) {
                     throw new Error(data.error || 'Error al crear invitación');
                 }
-                const link = `${window.location.origin}/invite/${data.id}`;
+                const link = `${window.location.origin}/invitation/${data.id}`;
                 showToast(`✅ Invitación creada. Enlace: ${link}`, 'success', 6000);
                 // Limpiar formulario
                 document.getElementById('primaryGuest').value = '';
@@ -905,7 +905,7 @@
                         'EXPIRED': 'Expirada',
                         'VIRTUAL': 'Virtual'
                     } [status] || status;
-                    const link = `${window.location.origin}/invite/${inv.id}`;
+                    const link = `${window.location.origin}/invitation/${inv.id}`;
                     const confirmed = inv.confirmed_attendees || 0;
                     const total = inv.total_family_members || 0;
                     const expDate = new Date(inv.expiration_date);
