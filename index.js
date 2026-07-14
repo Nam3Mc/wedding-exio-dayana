@@ -24,6 +24,16 @@ app.use(express.json());
 // Servir archivos estáticos (útil en desarrollo local)
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Redirigir raíz a admin.html (opcional)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Servir invitation.html para rutas /invitation/:uuid
+app.get('/invitation/:uuid', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'invitation.html'));
+});
+
 // ========== LOGIN ==========
 app.post('/api/auth/login', async (req, res) => {
   const { password } = req.body;
