@@ -1,7 +1,6 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 
-dotenv.config();
+import pg from 'pg';
 
 const { Pool } = pg;
 
@@ -13,15 +12,25 @@ if (!databaseUrl) {
     );
 }
 
+const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL === '1';
+
 const pool = new Pool({
     connectionString: databaseUrl,
-    max: process.env.NODE_ENV === 'production' ? 5 : 10,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    max: isProduction ? 5 : 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000
 });
 
 pool.on('error', (error) => {
-    console.error('Unexpected PostgreSQL pool error:', error);
+    console.error(
+        'Unexpected PostgreSQL pool error:',
+        error
+    );
 });
 
 export default pool;

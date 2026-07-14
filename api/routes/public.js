@@ -1,128 +1,309 @@
 import { Router } from 'express';
 
-export default (pool) => {
-  const router = Router();
+const allowedStatuses = new Set([
+    'CONFIRMED',
+    'VIRTUAL',
+    'REJECTED'
+]);
 
-  // GET: Obtener datos de una invitación (público)
-  router.get('/invitation/:uuid', async (req, res) => {
-    const { uuid } = req.params;
-    try {
-      // Buscar la invitación
-      const invResult = await pool.query(
-        'SELECT * FROM invitations WHERE id = $1',
-        [uuid]
-      );
-      if (invResult.rowCount === 0) {
-        return res.status(404).json({ error: 'Invitación no encontrada' });
-      }
-      const invitation = invResult.rows[0];
+export default function createPublicRoutes(pool) {
+    const router = Router();
 
-      // Verificar si expiró (si está PENDING y la fecha ya pasó)
-      const now = new Date();
-      const expiration = new Date(invitation.expiration_date);
-      if (invitation.group_status === 'PENDING' && now > expiration) {
-        // Actualizar estado a EXPIRED
-        await pool.query(
-          'UPDATE invitations SET group_status = $1 WHERE id = $2',
-          ['EXPIRED', uuid]
+    // ============================================================
+    // OBTENER INVITACIÓN PÚBLICA
+    // ============================================================
+
+    router.get('/invitation/:uuid', async (req, res) => {
+        const { uuid } = req.params;
+
+        if (!uuid) {
+            return res.status(400).json({
+                error: 'El identificador es obligatorio'
+            });
+        }
+
+        try {
+            const invitationResult = await pool.query(
+                `
+                    SELECT
+                        id,
+                        primary_guest,
+                        is_foreign,
+                        expiration_date,
+                        group_status,
+                        max_attendees,
+                        (
+                            expiration_date <
+                            (
+                                CURRENT_TIMESTAMP
+                                AT TIME ZONE 'America/Bogota'
+                            )::date
+                        ) AS is_expired
+                    FROM invitations
+                    WHERE id = $1
+                `,
+                [uuid]
+            );
+
+            if (invitationResult.rowCount === 0) {
+                return res.status(404).json({
+                    error: 'Invitación no encontrada'
+                });
+            }
+
+            const invitation =
+                invitationResult.rows[0];
+
+            if (
+                invitation.group_status === 'PENDING' &&
+                invitation.is_expired
+            ) {
+                await pool.query(
+                    `
+                        UPDATE invitations
+                        SET
+                            group_status = 'EXPIRED',
+                            updated_at = NOW()
+                        WHERE id = $1
+                    `,
+                    [uuid]
+                );
+
+                invitation.group_status = 'EXPIRED';
+            }
+
+            const familyResult = await pool.query(
+                `
+                    SELECT
+                        id,
+                        name,
+                        is_attending
+                    FROM family_members
+                    WHERE invitation_id = $1
+                    ORDER BY id ASC
+                `,
+                [uuid]
+            );
+
+            return res.status(200).json({
+                invitation: {
+                    id: invitation.id,
+                    primary_guest: invitation.primary_guest,
+                    is_foreign: invitation.is_foreign,
+                    expiration_date: invitation.expiration_date,
+                    group_status: invitation.group_status,
+                    max_attendees: invitation.max_attendees
+                },
+                family_members: familyResult.rows
+            });
+        } catch (error) {
+            console.error(
+                'Error al obtener invitación pública:',
+                error
+            );
+
+            return res.status(500).json({
+                error: 'Error al obtener invitación'
+            });
+        }
+    });
+
+    // ============================================================
+    // RESPONDER INVITACIÓN
+    // ============================================================
+
+    router.post('/respond', async (req, res) => {
+        const {
+            uuid,
+            responses,
+            status
+        } = req.body;
+
+        if (!uuid || !Array.isArray(responses)) {
+            return res.status(400).json({
+                error: 'Datos inválidos'
+            });
+        }
+
+        const normalizedResponses = responses.map(
+            (response) => ({
+                id: response?.id,
+                is_attending: response?.is_attending
+            })
         );
-        invitation.group_status = 'EXPIRED';
-      }
 
-      // Obtener familiares
-      const familyResult = await pool.query(
-        'SELECT id, name, is_attending FROM family_members WHERE invitation_id = $1',
-        [uuid]
-      );
+        const hasInvalidResponse =
+            normalizedResponses.some(
+                (response) =>
+                    !response.id ||
+                    typeof response.is_attending !== 'boolean'
+            );
 
-      res.json({
-        invitation: {
-          id: invitation.id,
-          primary_guest: invitation.primary_guest,
-          is_foreign: invitation.is_foreign,
-          expiration_date: invitation.expiration_date,
-          group_status: invitation.group_status,
-          max_attendees: invitation.max_attendees,
-        },
-        family_members: familyResult.rows
-      });
-    } catch (error) {
-      console.error('Error al obtener invitación pública:', error);
-      res.status(500).json({ error: 'Error al obtener invitación' });
-    }
-  });
+        if (hasInvalidResponse) {
+            return res.status(400).json({
+                error: 'Las respuestas de los acompañantes no son válidas'
+            });
+        }
 
-  // POST: Enviar respuesta (confirmar asistentes)
-  router.post('/respond', async (req, res) => {
-    const { uuid, responses } = req.body;
-    if (!uuid || !Array.isArray(responses)) {
-      return res.status(400).json({ error: 'Datos inválidos' });
-    }
+        const normalizedStatus =
+            typeof status === 'string'
+                ? status.toUpperCase()
+                : null;
 
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
+        if (
+            normalizedStatus &&
+            !allowedStatuses.has(normalizedStatus)
+        ) {
+            return res.status(400).json({
+                error: 'Estado de confirmación inválido'
+            });
+        }
 
-      // Verificar que la invitación existe y no está expirada
-      const invResult = await client.query(
-        'SELECT id, group_status, expiration_date FROM invitations WHERE id = $1',
-        [uuid]
-      );
-      if (invResult.rowCount === 0) {
-        await client.query('ROLLBACK');
-        return res.status(404).json({ error: 'Invitación no encontrada' });
-      }
-      const invitation = invResult.rows[0];
-      const now = new Date();
-      const expiration = new Date(invitation.expiration_date);
-      if (invitation.group_status === 'PENDING' && now > expiration) {
-        await client.query('ROLLBACK');
-        return res.status(410).json({ error: 'La invitación ha expirado' });
-      }
+        const client = await pool.connect();
 
-      // Actualizar cada familiar
-      for (const resp of responses) {
-        await client.query(
-          'UPDATE family_members SET is_attending = $1 WHERE id = $2 AND invitation_id = $3',
-          [resp.is_attending, resp.id, uuid]
-        );
-      }
+        try {
+            await client.query('BEGIN');
 
-      // Calcular nuevo estado del grupo
-      const stats = await client.query(
-        `SELECT 
-          COUNT(*) AS total,
-          COUNT(*) FILTER (WHERE is_attending = true) AS attending,
-          COUNT(*) FILTER (WHERE is_attending = false OR is_attending IS NULL) AS not_attending
-         FROM family_members WHERE invitation_id = $1`,
-        [uuid]
-      );
-      const { total, attending, not_attending } = stats.rows[0];
-      let newStatus = 'PENDING';
-      if (attending > 0) {
-        newStatus = 'CONFIRMED';
-      } else if (not_attending === total && total > 0) {
-        newStatus = 'REJECTED';
-      }
+            const invitationResult = await client.query(
+                `
+                    SELECT
+                        id,
+                        group_status,
+                        (
+                            expiration_date <
+                            (
+                                CURRENT_TIMESTAMP
+                                AT TIME ZONE 'America/Bogota'
+                            )::date
+                        ) AS is_expired
+                    FROM invitations
+                    WHERE id = $1
+                    FOR UPDATE
+                `,
+                [uuid]
+            );
 
-      await client.query(
-        'UPDATE invitations SET group_status = $1, updated_at = NOW() WHERE id = $2',
-        [newStatus, uuid]
-      );
+            if (invitationResult.rowCount === 0) {
+                await client.query('ROLLBACK');
 
-      await client.query('COMMIT');
-      res.json({
-        message: 'Respuesta guardada correctamente',
-        status: newStatus
-      });
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Error al procesar respuesta:', error);
-      res.status(500).json({ error: 'Error al procesar respuesta' });
-    } finally {
-      client.release();
-    }
-  });
+                return res.status(404).json({
+                    error: 'Invitación no encontrada'
+                });
+            }
 
-  return router;
-};
+            const invitation =
+                invitationResult.rows[0];
+
+            if (
+                invitation.group_status === 'EXPIRED' ||
+                invitation.is_expired
+            ) {
+                await client.query(
+                    `
+                        UPDATE invitations
+                        SET
+                            group_status = 'EXPIRED',
+                            updated_at = NOW()
+                        WHERE id = $1
+                    `,
+                    [uuid]
+                );
+
+                await client.query('COMMIT');
+
+                return res.status(410).json({
+                    error: 'La invitación ha expirado'
+                });
+            }
+
+            if (invitation.group_status !== 'PENDING') {
+                await client.query('ROLLBACK');
+
+                return res.status(409).json({
+                    error: 'Esta invitación ya fue respondida'
+                });
+            }
+
+            for (const response of normalizedResponses) {
+                await client.query(
+                    `
+                        UPDATE family_members
+                        SET is_attending = $1
+                        WHERE
+                            id = $2
+                            AND invitation_id = $3
+                    `,
+                    [
+                        response.is_attending,
+                        response.id,
+                        uuid
+                    ]
+                );
+            }
+
+            let newStatus = normalizedStatus;
+
+            if (!newStatus) {
+                const hasAttendingMember =
+                    normalizedResponses.some(
+                        (response) =>
+                            response.is_attending === true
+                    );
+
+                newStatus = hasAttendingMember
+                    ? 'CONFIRMED'
+                    : 'REJECTED';
+            }
+
+            if (
+                newStatus === 'REJECTED' ||
+                newStatus === 'VIRTUAL'
+            ) {
+                await client.query(
+                    `
+                        UPDATE family_members
+                        SET is_attending = false
+                        WHERE invitation_id = $1
+                    `,
+                    [uuid]
+                );
+            }
+
+            await client.query(
+                `
+                    UPDATE invitations
+                    SET
+                        group_status = $1,
+                        updated_at = NOW()
+                    WHERE id = $2
+                `,
+                [
+                    newStatus,
+                    uuid
+                ]
+            );
+
+            await client.query('COMMIT');
+
+            return res.status(200).json({
+                message: 'Respuesta guardada correctamente',
+                status: newStatus
+            });
+        } catch (error) {
+            await client.query('ROLLBACK');
+
+            console.error(
+                'Error al procesar respuesta:',
+                error
+            );
+
+            return res.status(500).json({
+                error: 'Error al procesar respuesta'
+            });
+        } finally {
+            client.release();
+        }
+    });
+
+    return router;
+}
