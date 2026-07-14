@@ -21,15 +21,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Servir archivos estáticos (útil en desarrollo local)
+// Archivos estáticos (solo para desarrollo local)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Redirigir raíz a admin.html (opcional)
+// ========== RUTAS PARA LOCAL (no afectan a Vercel) ==========
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Servir invitation.html para rutas /invitation/:uuid
 app.get('/invitation/:uuid', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'invitation.html'));
 });
@@ -53,13 +52,13 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// ========== RUTAS ADMIN (protegidas) ==========
+// ========== RUTAS ADMIN ==========
 app.use('/api/invitations', adminRoutes(pool, auth));
 
 // ========== RUTAS PÚBLICAS ==========
 app.use('/api/public', publicRoutes(pool));
 
-// ========== MANEJADOR DE ERRORES GLOBAL ==========
+// ========== MANEJADOR DE ERRORES ==========
 app.use((err, req, res, next) => {
   console.error('Error no capturado:', err);
   res.status(500).json({ error: 'Error interno del servidor' });

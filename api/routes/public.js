@@ -7,7 +7,6 @@ export default (pool) => {
   router.get('/invitation/:uuid', async (req, res) => {
     const { uuid } = req.params;
     try {
-      // Verificar existencia
       const invResult = await pool.query(
         'SELECT * FROM invitations WHERE id = $1',
         [uuid]
@@ -17,7 +16,6 @@ export default (pool) => {
       }
       const invitation = invResult.rows[0];
 
-      // Actualizar a EXPIRED si la fecha ya pasó y está PENDING
       const now = new Date();
       const expiration = new Date(invitation.expiration_date);
       if (invitation.group_status === 'PENDING' && now > expiration) {
@@ -28,7 +26,6 @@ export default (pool) => {
         invitation.group_status = 'EXPIRED';
       }
 
-      // Obtener familiares
       const familyResult = await pool.query(
         'SELECT id, name, is_attending FROM family_members WHERE invitation_id = $1',
         [uuid]
@@ -59,7 +56,6 @@ export default (pool) => {
       return res.status(400).json({ error: 'Falta el identificador de la invitación' });
     }
 
-    // Validar status: debe ser CONFIRMED, VIRTUAL o REJECTED
     const allowedStatuses = ['CONFIRMED', 'VIRTUAL', 'REJECTED'];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: 'Estado de confirmación inválido' });
@@ -73,7 +69,6 @@ export default (pool) => {
     try {
       await client.query('BEGIN');
 
-      // Verificar que la invitación existe y no está expirada o ya respondida
       const invResult = await client.query(
         'SELECT id, group_status, expiration_date FROM invitations WHERE id = $1',
         [uuid]
@@ -87,19 +82,16 @@ export default (pool) => {
       const now = new Date();
       const expiration = new Date(invitation.expiration_date);
 
-      // Si ya está EXPIRED, rechazar
       if (invitation.group_status === 'EXPIRED') {
         await client.query('ROLLBACK');
         return res.status(410).json({ error: 'La invitación ha expirado' });
       }
 
-      // Si ya no está PENDING (ya fue respondida), rechazar
       if (invitation.group_status !== 'PENDING') {
         await client.query('ROLLBACK');
         return res.status(409).json({ error: 'Esta invitación ya fue respondida' });
       }
 
-      // Si la fecha de expiración ya pasó y aún está PENDING, marcar EXPIRED y rechazar
       if (now > expiration) {
         await client.query(
           'UPDATE invitations SET group_status = $1 WHERE id = $2',
@@ -109,7 +101,6 @@ export default (pool) => {
         return res.status(410).json({ error: 'La invitación ha expirado' });
       }
 
-      // Actualizar cada familiar (si se enviaron respuestas)
       for (const resp of responses) {
         await client.query(
           'UPDATE family_members SET is_attending = $1 WHERE id = $2 AND invitation_id = $3',
@@ -117,7 +108,6 @@ export default (pool) => {
         );
       }
 
-      // Actualizar el estado del grupo directamente con el status recibido
       await client.query(
         'UPDATE invitations SET group_status = $1, updated_at = NOW() WHERE id = $2',
         [status, uuid]
