@@ -346,6 +346,7 @@ img {
         background 0.25s ease,
         box-shadow 0.25s ease,
         transform 0.25s ease;
+    margin-top: -350px;
 }
 
 .envelope-card:hover .envelope-touch,
@@ -2126,7 +2127,6 @@ img {
         padding: 9px 16px;
         font-size: 0.9rem;
         letter-spacing: 0.06em;
-        margin-top: 25px;
     }
 
     .music-toggle {
