@@ -3,243 +3,488 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b3027">
     <title><%= title %></title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Playfair+Display:ital,wght@0,400;0,700;1,700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&family=Parisienne&display=swap"
+        rel="stylesheet"
+    >
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
     <link rel="stylesheet" href="/css/invitation.css">
 </head>
-<body class="invitation-page">
-    <div class="sobre-overlay" id="sobreOverlay" aria-hidden="false">
-        <div class="sobre" id="sobreBtn" role="button" tabindex="0" aria-label="Abrir invitación">
-            <h2>Dayana &amp; Exio</h2>
-            <p>Toca para abrir tu invitación</p>
-            <div class="flecha"><i class="fas fa-chevron-down"></i></div>
-        </div>
+<body
+    class="invitation-page"
+    data-invitation-id="<%= invitation.id %>"
+    data-is-foreign="<%= invitation.is_foreign ? 'true' : 'false' %>"
+>
+    <div class="ambient-light ambient-light-one" aria-hidden="true"></div>
+    <div class="ambient-light ambient-light-two" aria-hidden="true"></div>
+    <div class="petal-field" id="petalField" aria-hidden="true"></div>
+
+    <div class="envelope-stage" id="envelopeStage" aria-hidden="false">
+        <button
+            class="envelope-card"
+            id="openInvitationButton"
+            type="button"
+            aria-label="Abrir invitación para <%= invitation.primary_guest %>"
+        >
+            <span class="envelope-glow" aria-hidden="true"></span>
+            <span class="envelope-border" aria-hidden="true"></span>
+
+            <span class="envelope-monogram">D<span>&amp;</span>E</span>
+            <span class="envelope-kicker">Una invitación especial para</span>
+            <strong class="envelope-guest"><%= invitation.primary_guest %></strong>
+            <span class="envelope-divider" aria-hidden="true"></span>
+            <span class="envelope-instruction">
+                Toca para descubrirla
+                <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+            </span>
+        </button>
     </div>
 
-    <main class="invitacion-container active">
-        <div class="marco-invitacion">
-            <section class="bloque-seccion bloque-oscuro">
-                <div class="contenedor-foto">
-                    <img
-                        src="https://torrealbaexio-prog.github.io/invitacion-boda/foto1.jpeg"
-                        alt="Dayana y Exio"
-                        class="foto-boda"
-                        width="180"
-                        height="180"
-                    >
+    <main class="invitation-shell" id="invitationContent">
+        <section class="hero-section" aria-labelledby="coupleNames">
+            <div class="hero-photo" aria-hidden="true"></div>
+            <div class="hero-overlay" aria-hidden="true"></div>
+            <div class="hero-ornament hero-ornament-left" aria-hidden="true"></div>
+            <div class="hero-ornament hero-ornament-right" aria-hidden="true"></div>
+
+            <div class="hero-content reveal-on-scroll">
+                <p class="eyebrow">Con la bendición de Dios y nuestras familias</p>
+                <div class="hero-flourish" aria-hidden="true">
+                    <span></span>
+                    <i class="fa-regular fa-gem"></i>
+                    <span></span>
                 </div>
-                <h1 class="nombres-novios">Dayana</h1>
-                <div class="ampersand">&amp;</div>
-                <h1 class="nombres-novios">Exio</h1>
-            </section>
 
-            <div class="divisor-dorado"></div>
+                <h1 class="couple-names" id="coupleNames">
+                    <span>Dayana</span>
+                    <small>&amp;</small>
+                    <span>Exio</span>
+                </h1>
 
-            <section class="bloque-seccion bloque-claro">
-                <h2 class="texto-invitado">
-                    ¡Hola, <span><%= invitation.primary_guest %></span>!
+                <p class="hero-announcement">Celebramos nuestro amor</p>
+                <time class="hero-date" datetime="2027-01-08">
+                    <span>08</span>
+                    <b>·</b>
+                    <span>01</span>
+                    <b>·</b>
+                    <span>2027</span>
+                </time>
+            </div>
+
+            <a class="scroll-cue" href="#welcome" aria-label="Continuar leyendo la invitación">
+                <span>Descubre nuestra historia</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </a>
+        </section>
+
+        <section class="paper-section welcome-section" id="welcome">
+            <div class="section-frame reveal-on-scroll">
+                <span class="corner corner-top-left" aria-hidden="true"></span>
+                <span class="corner corner-top-right" aria-hidden="true"></span>
+                <span class="corner corner-bottom-left" aria-hidden="true"></span>
+                <span class="corner corner-bottom-right" aria-hidden="true"></span>
+
+                <p class="section-kicker">Tenemos el honor de invitarte</p>
+                <h2 class="guest-greeting">
+                    Querido(a)<br>
+                    <span><%= invitation.primary_guest %></span>
                 </h2>
 
-                <div class="versiculo">
-                    “Si alguno prevalece contra el que está solo, dos estarán contra él,
-                    pues cordón de tres dobleces no se rompe pronto.”
-                    <span class="cita-versiculo">Eclesiastés 4:12</span>
-                </div>
-
-                <p class="introduccion-texto">
-                    Hemos decidido unir nuestras vidas en matrimonio y nos llenaría
-                    de alegría contar con su compañía.
+                <p class="welcome-copy">
+                    Hay momentos que cambian la vida para siempre. El nuestro está por llegar,
+                    y sería aún más inolvidable si formas parte de él.
                 </p>
 
-                <div class="lista-pases-contenedor">
-                    <ul>
-                        <li class="pase-item"><%= invitation.primary_guest %></li>
-                        <% companions.forEach((companion) => { %>
-                            <li class="pase-item"><%= companion.name %></li>
-                        <% }) %>
-                    </ul>
+                <blockquote class="scripture-quote">
+                    <i class="fa-solid fa-quote-left" aria-hidden="true"></i>
+                    <p>
+                        Si alguno prevalece contra el que está solo, dos estarán contra él;
+                        y cordón de tres dobleces no se rompe pronto.
+                    </p>
+                    <cite>Eclesiastés 4:12</cite>
+                </blockquote>
+            </div>
+        </section>
+
+        <section class="guest-list-section">
+            <div class="content-width reveal-on-scroll">
+                <p class="section-kicker light">Esta invitación ha sido reservada para</p>
+                <h2 class="section-title light">Nuestros invitados especiales</h2>
+
+                <div class="guest-roster">
+                    <article class="guest-pill primary-guest-pill">
+                        <span class="guest-icon"><i class="fa-solid fa-crown" aria-hidden="true"></i></span>
+                        <div>
+                            <small>Invitado principal</small>
+                            <strong><%= invitation.primary_guest %></strong>
+                        </div>
+                    </article>
+
+                    <% companions.forEach((companion) => { %>
+                        <article class="guest-pill">
+                            <span class="guest-icon"><i class="fa-regular fa-star" aria-hidden="true"></i></span>
+                            <div>
+                                <small>Acompañante</small>
+                                <strong><%= companion.name %></strong>
+                            </div>
+                        </article>
+                    <% }) %>
                 </div>
 
-                <p class="nota-aclaratoria">
-                    * Cupos limitados. Velada exclusivamente para adultos.
+                <p class="adult-note">
+                    <i class="fa-solid fa-champagne-glasses" aria-hidden="true"></i>
+                    Una velada exclusiva para adultos. Los cupos son personales e intransferibles.
                 </p>
-            </section>
+            </div>
+        </section>
 
-            <div class="divisor-dorado"></div>
+        <section class="countdown-section">
+            <div class="countdown-photo" aria-hidden="true"></div>
+            <div class="countdown-overlay" aria-hidden="true"></div>
 
-            <section class="bloque-seccion bloque-oscuro">
-                <h3 class="subtitulo-elegante">SAVE THE DATE</h3>
-                <h4 class="fecha-texto">Enero 8, 2027</h4>
-                <div class="contador-display" aria-label="Cuenta regresiva para la boda">
-                    <div class="unidad-tiempo">
-                        <span id="dias" class="numero">--</span>
-                        <span class="etiqueta">Días</span>
+            <div class="countdown-content content-width reveal-on-scroll">
+                <p class="section-kicker light">La espera también es parte de la historia</p>
+                <h2 class="section-title light">Faltan</h2>
+
+                <div class="countdown-grid" aria-label="Cuenta regresiva para la boda">
+                    <div class="time-card">
+                        <strong id="days">--</strong>
+                        <span>Días</span>
                     </div>
-                    <div class="unidad-tiempo">
-                        <span id="horas" class="numero">--</span>
-                        <span class="etiqueta">Horas</span>
+                    <div class="time-card">
+                        <strong id="hours">--</strong>
+                        <span>Horas</span>
                     </div>
-                    <div class="unidad-tiempo">
-                        <span id="minutos" class="numero">--</span>
-                        <span class="etiqueta">Min</span>
+                    <div class="time-card">
+                        <strong id="minutes">--</strong>
+                        <span>Minutos</span>
                     </div>
-                    <div class="unidad-tiempo">
-                        <span id="segundos" class="numero">--</span>
-                        <span class="etiqueta">Seg</span>
+                    <div class="time-card">
+                        <strong id="seconds">--</strong>
+                        <span>Segundos</span>
                     </div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <div class="divisor-dorado"></div>
+        <section class="paper-section event-section">
+            <div class="content-width">
+                <div class="section-heading reveal-on-scroll">
+                    <p class="section-kicker">El gran día</p>
+                    <h2 class="section-title">Celebra con nosotros</h2>
+                    <span class="ornamental-rule" aria-hidden="true"></span>
+                </div>
 
-            <section class="bloque-seccion bloque-claro">
-                <h3 class="subtitulo-elegante cursivo">Recepción</h3>
-                <p class="datos-lugar">
-                    <strong>Lugar:</strong> La Terraza del Portón, Cúcuta
+                <div class="event-grid">
+                    <article class="event-card reveal-on-scroll">
+                        <span class="event-number">01</span>
+                        <div class="event-icon"><i class="fa-regular fa-calendar" aria-hidden="true"></i></div>
+                        <p class="event-label">Fecha</p>
+                        <h3>Viernes</h3>
+                        <p class="event-main">8 de enero de 2027</p>
+                        <p class="event-detail">6:00 p. m.</p>
+                    </article>
+
+                    <article class="event-card event-card-featured reveal-on-scroll">
+                        <span class="event-number">02</span>
+                        <div class="event-icon"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></div>
+                        <p class="event-label">Recepción</p>
+                        <h3>La Terraza del Portón</h3>
+                        <p class="event-main">Cúcuta, Norte de Santander</p>
+                        <p class="event-detail">Te esperamos con puntualidad</p>
+
+                        <div class="map-actions">
+                            <a
+                                href="https://maps.google.com/?q=La+terraza+del+porton+Cucuta"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <i class="fa-brands fa-google" aria-hidden="true"></i>
+                                Google Maps
+                            </a>
+                            <a
+                                href="https://waze.com/ul?q=La+terraza+del+porton+Cucuta"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <i class="fa-brands fa-waze" aria-hidden="true"></i>
+                                Waze
+                            </a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="love-photo-section" aria-label="Fotografía de Dayana y Exio">
+            <div class="love-photo" aria-hidden="true"></div>
+            <div class="love-photo-overlay" aria-hidden="true"></div>
+            <div class="love-quote reveal-on-scroll">
+                <span class="quote-mark">“</span>
+                <p>Por encima de todo, vístanse de amor, que es el vínculo perfecto.</p>
+                <cite>Colosenses 3:14</cite>
+            </div>
+        </section>
+
+        <section class="paper-section dress-section">
+            <div class="content-width reveal-on-scroll">
+                <div class="section-heading">
+                    <p class="section-kicker">Elegancia para una noche inolvidable</p>
+                    <h2 class="section-title">Código de vestimenta</h2>
+                    <span class="dress-code-badge">Formal elegante</span>
+                </div>
+
+                <p class="dress-copy">
+                    Queremos que te sientas espectacular. Respetuosamente, reservamos
+                    los siguientes tonos para la novia y su cortejo.
                 </p>
-                <div class="grupo-mapas">
-                    <a
-                        href="https://maps.google.com/?q=La+terraza+del+porton+Cucuta"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn btn-maps"
-                    >
-                        <i class="fas fa-map-marker-alt"></i>
-                        Google Maps
-                    </a>
-                    <a
-                        href="https://waze.com/ul?q=La+terraza+del+porton+Cucuta"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn btn-waze"
-                    >
-                        <i class="fab fa-waze"></i>
-                        Waze
-                    </a>
-                </div>
-            </section>
 
-            <div class="divisor-dorado"></div>
-
-            <section class="bloque-seccion bloque-oscuro">
-                <div class="contenedor-foto">
-                    <img
-                        src="https://torrealbaexio-prog.github.io/invitacion-boda/foto2.jpeg"
-                        alt="Dayana y Exio"
-                        class="foto-boda"
-                        width="180"
-                        height="180"
-                        loading="lazy"
-                    >
-                </div>
-                <p style="font-style:italic; font-family:var(--font-serif); text-align:center; color:var(--blanco); font-size:1.1rem;">
-                    “Por encima de todo, vístanse de amor, que es el vínculo perfecto.”
-                </p>
-            </section>
-
-            <div class="divisor-dorado"></div>
-
-            <section class="bloque-seccion bloque-claro">
-                <h3 class="subtitulo-elegante">DRESS CODE</h3>
-                <p class="aviso-colores">
-                    Respetuosamente les solicitamos reservar los siguientes colores
-                    para uso exclusivo de la novia:
-                </p>
-                <div class="colores-prohibidos">
-                    <div class="item-color"><span class="circulo-color blanco"></span>Blanco</div>
-                    <div class="item-color"><span class="circulo-color verde"></span>Verde</div>
-                    <div class="item-color"><span class="circulo-color beige"></span>Beige</div>
-                    <div class="item-color"><span class="circulo-color azul"></span>Azul</div>
-                </div>
-            </section>
-
-            <% if (invitation.is_foreign) { %>
-                <div class="divisor-dorado"></div>
-                <section class="bloque-seccion bloque-oscuro">
-                    <h3 class="subtitulo-elegante">Transmisión Virtual</h3>
-                    <div style="text-align:center;">
-                        <a
-                            href="https://youtube.com"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="btn btn-transmision"
-                        >
-                            <i class="fas fa-video"></i>
-                            UNIRSE A LA TRANSMISIÓN
-                        </a>
+                <div class="reserved-colors" aria-label="Colores reservados">
+                    <div class="color-card">
+                        <span class="color-swatch swatch-white"></span>
+                        <strong>Blanco</strong>
                     </div>
-                </section>
-            <% } %>
+                    <div class="color-card">
+                        <span class="color-swatch swatch-green"></span>
+                        <strong>Verde</strong>
+                    </div>
+                    <div class="color-card">
+                        <span class="color-swatch swatch-beige"></span>
+                        <strong>Beige</strong>
+                    </div>
+                    <div class="color-card">
+                        <span class="color-swatch swatch-blue"></span>
+                        <strong>Azul</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-            <div class="divisor-dorado"></div>
+        <% if (invitation.is_foreign) { %>
+            <section class="virtual-note-section">
+                <div class="content-width reveal-on-scroll">
+                    <div class="virtual-note-card">
+                        <span class="virtual-note-icon">
+                            <i class="fa-solid fa-earth-americas" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <p class="section-kicker light">La distancia no nos separa</p>
+                            <h2>También podrás acompañarnos virtualmente</h2>
+                            <p>
+                                Al confirmar encontrarás la opción para conectarte a la transmisión
+                                desde cualquier lugar del mundo.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        <% } %>
 
-            <section class="bloque-seccion bloque-claro">
+        <section class="response-section" id="responseSection">
+            <div class="response-glow" aria-hidden="true"></div>
+            <div class="content-width response-content reveal-on-scroll">
+                <p class="section-kicker light">Tu presencia es nuestro mejor regalo</p>
+                <h2 class="response-title">¿Nos acompañas?</h2>
+                <p class="response-copy">
+                    Confirma tu asistencia antes del
+                    <strong><%= new Date(invitation.expiration_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) %></strong>.
+                </p>
+
                 <% if (successMessage) { %>
-                    <div class="result-message"><%= successMessage %></div>
+                    <div class="feedback-banner feedback-success" role="status">
+                        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                        <span><%= successMessage %></span>
+                    </div>
                 <% } %>
 
                 <% if (errorMessage) { %>
-                    <div class="result-message" style="color:#922b21;"><%= errorMessage %></div>
+                    <div class="feedback-banner feedback-error" role="alert">
+                        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                        <span><%= errorMessage %></span>
+                    </div>
                 <% } %>
 
                 <% if (invitation.group_status === 'PENDING') { %>
-                    <div class="response-card">
-                        <h3 class="subtitulo-elegante">Confirma tu asistencia</h3>
-                        <p>Selecciona los acompañantes que asistirán y luego elige una respuesta.</p>
+                    <div class="response-actions" aria-label="Responder invitación">
+                        <button class="response-button response-confirm" id="openConfirmationModal" type="button">
+                            <span class="response-button-icon">
+                                <i class="fa-solid fa-heart" aria-hidden="true"></i>
+                            </span>
+                            <span>
+                                <strong>Confirmar</strong>
+                                <small>Sí, compartiré este día con ustedes</small>
+                            </span>
+                            <i class="fa-solid fa-arrow-right-long response-arrow" aria-hidden="true"></i>
+                        </button>
 
-                        <form method="post" action="/invitation/<%= invitation.id %>/respond">
-                            <% if (companions.length > 0) { %>
-                                <div style="margin-top:20px;">
-                                    <% companions.forEach((companion) => { %>
-                                        <label class="member-choice">
-                                            <input
-                                                type="checkbox"
-                                                name="attending_companions"
-                                                value="<%= companion.id %>"
-                                                checked
-                                            >
-                                            <span><%= companion.name %> asistirá</span>
-                                        </label>
-                                    <% }) %>
-                                </div>
-                            <% } %>
-
-                            <div class="response-buttons">
-                                <button class="btn btn-confirmar" type="submit" name="status" value="CONFIRMED">
-                                    <i class="fas fa-check"></i>
-                                    Asistiremos
-                                </button>
-
-                                <% if (invitation.is_foreign) { %>
-                                    <button class="btn btn-virtual" type="submit" name="status" value="VIRTUAL">
-                                        <i class="fas fa-video"></i>
-                                        Veremos la transmisión
-                                    </button>
-                                <% } %>
-
-                                <button class="btn btn-reject" type="submit" name="status" value="REJECTED">
-                                    <i class="fas fa-times"></i>
-                                    No podremos asistir
-                                </button>
-                            </div>
+                        <form
+                            method="post"
+                            action="/invitation/<%= invitation.id %>/respond"
+                            id="declineForm"
+                        >
+                            <input type="hidden" name="status" value="REJECTED">
+                            <button class="response-button response-decline" type="submit">
+                                <span class="response-button-icon">
+                                    <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                                </span>
+                                <span>
+                                    <strong>No podré asistir</strong>
+                                    <small>Con cariño, les enviaré mis mejores deseos</small>
+                                </span>
+                                <i class="fa-solid fa-arrow-right-long response-arrow" aria-hidden="true"></i>
+                            </button>
                         </form>
                     </div>
                 <% } else if (invitation.group_status === 'EXPIRED') { %>
-                    <div class="result-message">
-                        El plazo para responder esta invitación terminó.
+                    <div class="response-state-card">
+                        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                        <h3>El plazo de confirmación terminó</h3>
+                        <p>Comunícate directamente con los novios para consultar disponibilidad.</p>
                     </div>
                 <% } else { %>
-                    <div class="result-message">
-                        Esta invitación ya fue respondida con el estado:
-                        <strong><%= invitation.group_status %></strong>.
+                    <% const responseLabels = {
+                        CONFIRMED: 'Asistencia presencial confirmada',
+                        VIRTUAL: 'Asistencia virtual confirmada',
+                        REJECTED: 'No podrá asistir'
+                    }; %>
+                    <div class="response-state-card response-state-complete">
+                        <i class="fa-solid fa-heart-circle-check" aria-hidden="true"></i>
+                        <h3>Gracias por responder</h3>
+                        <p><%= responseLabels[invitation.group_status] || invitation.group_status %></p>
                     </div>
                 <% } %>
+
+                <div class="closing-monogram" aria-hidden="true">D<span>&amp;</span>E</div>
+            </div>
+        </section>
+    </main>
+
+    <% if (invitation.group_status === 'PENDING') { %>
+        <div class="modal-backdrop" id="confirmationModal" aria-hidden="true">
+            <section
+                class="attendance-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="attendanceModalTitle"
+                tabindex="-1"
+            >
+                <button class="modal-close" id="closeConfirmationModal" type="button" aria-label="Cerrar modal">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+
+                <div class="modal-header">
+                    <span class="modal-icon"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
+                    <p class="section-kicker">Confirma tu asistencia</p>
+                    <h2 id="attendanceModalTitle">¿Quiénes nos acompañarán?</h2>
+                    <p>Selecciona a cada persona que formará parte de esta celebración.</p>
+                </div>
+
+                <form
+                    class="attendance-form"
+                    id="attendanceForm"
+                    method="post"
+                    action="/invitation/<%= invitation.id %>/respond"
+                    data-primary-count="1"
+                >
+                    <% if (invitation.is_foreign) { %>
+                        <fieldset class="attendance-mode">
+                            <legend>¿Cómo nos acompañarán?</legend>
+                            <label class="mode-option">
+                                <input type="radio" name="status" value="CONFIRMED" checked>
+                                <span class="mode-card">
+                                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                                    <span>
+                                        <strong>Presencialmente</strong>
+                                        <small>Estaremos en la celebración</small>
+                                    </span>
+                                </span>
+                            </label>
+                            <label class="mode-option">
+                                <input type="radio" name="status" value="VIRTUAL">
+                                <span class="mode-card">
+                                    <i class="fa-solid fa-video" aria-hidden="true"></i>
+                                    <span>
+                                        <strong>Asistiré virtualmente</strong>
+                                        <small>Nos conectaremos a la transmisión</small>
+                                    </span>
+                                </span>
+                            </label>
+                        </fieldset>
+                    <% } else { %>
+                        <input type="hidden" name="status" value="CONFIRMED">
+                    <% } %>
+
+                    <fieldset class="attendee-selection">
+                        <legend>Personas confirmadas</legend>
+
+                        <label class="attendee-option attendee-primary">
+                            <input type="checkbox" checked disabled>
+                            <span class="custom-checkbox" aria-hidden="true">
+                                <i class="fa-solid fa-check"></i>
+                            </span>
+                            <span class="attendee-avatar">
+                                <i class="fa-solid fa-crown" aria-hidden="true"></i>
+                            </span>
+                            <span class="attendee-info">
+                                <strong><%= invitation.primary_guest %></strong>
+                                <small>Invitado principal · Siempre incluido</small>
+                            </span>
+                        </label>
+
+                        <% companions.forEach((companion) => { %>
+                            <label class="attendee-option">
+                                <input
+                                    class="companion-checkbox"
+                                    type="checkbox"
+                                    name="attending_companions"
+                                    value="<%= companion.id %>"
+                                    checked
+                                >
+                                <span class="custom-checkbox" aria-hidden="true">
+                                    <i class="fa-solid fa-check"></i>
+                                </span>
+                                <span class="attendee-avatar">
+                                    <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                </span>
+                                <span class="attendee-info">
+                                    <strong><%= companion.name %></strong>
+                                    <small>Acompañante</small>
+                                </span>
+                            </label>
+                        <% }) %>
+                    </fieldset>
+
+                    <div class="attendance-summary" aria-live="polite">
+                        <i class="fa-solid fa-users" aria-hidden="true"></i>
+                        <span>
+                            <strong id="selectedAttendeeCount"><%= companions.length + 1 %></strong>
+                            <span id="selectedAttendeeLabel">
+                                <%= companions.length === 0 ? 'persona confirmada' : 'personas confirmadas' %>
+                            </span>
+                        </span>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="modal-secondary-button" id="cancelConfirmation" type="button">
+                            Volver
+                        </button>
+                        <button class="modal-primary-button" id="submitConfirmation" type="submit">
+                            <span>Enviar confirmación</span>
+                            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
             </section>
         </div>
-    </main>
+    <% } %>
 
     <script src="/js/invitation.js" defer></script>
 </body>
