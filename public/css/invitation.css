@@ -240,7 +240,7 @@ img {
             rgba(214, 221, 208, 0.28),
             transparent 42%
         ),
-        var(--champagne-300);
+        white;
     transition:
         visibility 0s linear 0.9s,
         opacity 0.9s ease;
@@ -833,7 +833,7 @@ img {
     gap: 12px;
     margin: 34px auto 0;
     color: var(--olive-200);
-    font-size: 1.3rem;
+    font-size: 0.78rem;
     letter-spacing: 0.03em;
     text-align: center;
     background-color: var();
