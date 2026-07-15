@@ -833,9 +833,10 @@ img {
     gap: 12px;
     margin: 34px auto 0;
     color: var(--olive-200);
-    font-size: 0.78rem;
+    font-size: 1.3rem;
     letter-spacing: 0.03em;
     text-align: center;
+    background-color: var();
 }
 
 .adult-note i {
@@ -2252,4 +2253,108 @@ img {
         opacity: 1;
         transform: none;
     }
+}
+
+.spotify-section {
+    padding: 80px 24px;
+}
+
+.spotify-card {
+    max-width: 720px;
+    margin: auto;
+    padding: 50px 40px;
+
+    text-align: center;
+
+    background: linear-gradient(
+        180deg,
+        #faf7f1,
+        #f3ebdc
+    );
+
+    border: 1px solid rgba(183,146,90,.25);
+
+    border-radius: 28px;
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,.08);
+}
+
+.spotify-icon {
+    width: 82px;
+    height: 82px;
+
+    margin: auto auto 25px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 50%;
+
+    background: #1DB954;
+
+    color: white;
+
+    font-size: 2rem;
+
+    box-shadow:
+        0 15px 35px rgba(29,185,84,.35);
+}
+
+.spotify-card h2 {
+    margin-bottom: 15px;
+
+    color: var(--olive-900);
+
+    font-family: var(--font-display);
+
+    font-size: 2rem;
+}
+
+.spotify-card p {
+
+    max-width: 520px;
+
+    margin: auto auto 30px;
+
+    line-height: 1.8;
+
+    color: #5c5c5c;
+}
+
+.spotify-button {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 16px 34px;
+
+    border-radius: 999px;
+
+    background: #1DB954;
+
+    color: white;
+
+    font-weight: 700;
+
+    text-decoration: none;
+
+    transition: .35s;
+}
+
+.spotify-button:hover {
+
+    transform: translateY(-4px);
+
+    box-shadow:
+        0 18px 35px rgba(29,185,84,.35);
+}
+
+.spotify-button i{
+
+    font-size:1.3rem;
 }

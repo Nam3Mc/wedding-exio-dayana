@@ -1,7 +1,8 @@
 import {
     createInvitation,
     deleteInvitation,
-    getAllInvitations
+    getAllInvitations,
+    getInvitationGuests
 } from '../models/invitations.js';
 import { isAdminAuthenticated } from '../middleware/admin-auth.js';
 
@@ -90,5 +91,15 @@ export async function remove(req, res) {
         return res.redirect('/?success=' + encodeURIComponent(message));
     } catch (error) {
         return res.redirect('/?error=' + encodeURIComponent(error.message));
+    }
+}
+
+export async function guests(req, res, next) {
+    try {
+        const guests = await getInvitationGuests(req.params.id);
+
+        return res.json(guests);
+    } catch (error) {
+        return next(error);
     }
 }

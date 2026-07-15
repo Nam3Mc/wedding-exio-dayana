@@ -235,6 +235,59 @@ export async function getInvitationById(id) {
     };
 }
 
+export async function getInvitationGuests(id) {
+    validateInvitationId(id);
+
+    const invitationResult = await db.query(
+        `
+            SELECT
+                primary_guest,
+                group_status
+            FROM invitations
+            WHERE id = $1
+        `,
+        [id]
+    );
+
+    if (invitationResult.rowCount === 0) {
+        return [];
+    }
+
+    const invitation = invitationResult.rows[0];
+
+    const companionResult = await db.query(
+        `
+            SELECT
+                name,
+                is_attending
+            FROM family_members
+            WHERE invitation_id = $1
+            ORDER BY created_at
+        `,
+        [id]
+    );
+
+    const guests = [
+        {
+            name: invitation.primary_guest,
+            is_primary: true,
+            is_attending:
+                invitation.group_status === 'CONFIRMED' ||
+                invitation.group_status === 'VIRTUAL'
+        }
+    ];
+
+    companionResult.rows.forEach((guest) => {
+        guests.push({
+            name: guest.name,
+            is_primary: false,
+            is_attending: guest.is_attending
+        });
+    });
+
+    return guests;
+}
+
 export async function respondToInvitation(id, status, attendingCompanionIds = []) {
     validateInvitationId(id);
 

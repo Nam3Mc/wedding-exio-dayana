@@ -137,12 +137,37 @@
                             <% } %>
 
                             <% invitations.forEach((invitation) => { %>
-                                <tr>
+                                <tr class="invitation-row">
                                     <td>
-                                        <strong><%= invitation.primary_guest %></strong>
-                                        <% if (invitation.is_foreign) { %>
-                                            <div class="inline-status">Virtual disponible</div>
-                                        <% } %>
+                                    
+                                        <div
+                                            class="guest-dropdown-toggle"
+                                            onclick="toggleGuests('<%= invitation.id %>')"
+                                        >
+                                    
+                                            <div>
+                                            
+                                                <strong>
+                                                    <%= invitation.primary_guest %>
+                                                </strong>
+                                            
+                                                <% if (invitation.is_foreign) { %>
+                                                
+                                                    <div class="inline-status">
+                                                        Virtual disponible
+                                                    </div>
+                                                
+                                                <% } %>
+                                                
+                                            </div>
+                                        
+                                            <i
+                                                id="arrow-<%= invitation.id %>"
+                                                class="fas fa-chevron-down dropdown-arrow"
+                                            ></i>
+                                        
+                                        </div>
+                                    
                                     </td>
                                     <td><%= invitation.companion_count + 1 %></td>
                                     <td><%= invitation.confirmed_attendees %></td>
@@ -187,7 +212,31 @@
                                         </form>
                                     </td>
                                 </tr>
-                            <% }) %>
+                                <tr
+                                id="guests-row-<%= invitation.id %>"
+                                class="guest-row"
+                                style="display:none;"
+                                >
+                                
+                                <td colspan="6">
+                                    
+                                    <div
+                                    id="guests-container-<%= invitation.id %>"
+                                    class="guest-list"
+                                    >
+                                    
+                                    <div class="loading-guests">
+                                        
+                                        Cargando invitados...
+                                        
+                                    </div>
+                                    
+                                </div>
+                                
+                            </td>
+                            
+                        </tr>
+                        <% }) %>
                         </tbody>
                     </table>
                 </div>

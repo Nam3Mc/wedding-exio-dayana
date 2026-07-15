@@ -607,3 +607,151 @@ body.admin-page {
         grid-column: auto;
     }
 }
+
+/* ===========================================================
+   GUEST DROPDOWN
+=========================================================== */
+
+.guest-dropdown-toggle {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    cursor: pointer;
+
+    gap: 20px;
+
+    transition: .25s;
+}
+
+.guest-dropdown-toggle:hover {
+
+    color: #556b2f;
+}
+
+.dropdown-arrow {
+
+    transition: transform .30s ease;
+
+    color: #8c7b52;
+
+    font-size: .85rem;
+}
+
+.dropdown-arrow.rotate {
+
+    transform: rotate(180deg);
+}
+
+.guest-row {
+
+    background: #faf9f5;
+}
+
+.guest-row td {
+
+    padding: 0 !important;
+}
+
+.guest-list {
+
+    padding: 18px 24px;
+
+    animation: fadeGuests .25s ease;
+}
+
+.guest-item {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 14px 0;
+
+    border-bottom: 1px solid #ece7dd;
+}
+
+.guest-item:last-child {
+
+    border-bottom: none;
+}
+
+.guest-name {
+
+    font-size: .95rem;
+
+    color: #444;
+
+    line-height: 1.5;
+}
+
+.guest-name strong {
+
+    display: inline-block;
+
+    margin-bottom: 4px;
+
+    color: #556b2f;
+
+    font-size: .80rem;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+}
+
+.guest-status span {
+
+    font-size: .85rem;
+
+    font-weight: 600;
+}
+
+.guest-confirmed {
+
+    color: #2e7d32;
+}
+
+.guest-rejected {
+
+    color: #c62828;
+}
+
+.guest-pending {
+
+    color: #d68910;
+}
+
+.loading-guests,
+.guest-error {
+
+    padding: 20px;
+
+    text-align: center;
+
+    color: #777;
+
+    font-style: italic;
+}
+
+@keyframes fadeGuests {
+
+    from {
+
+        opacity: 0;
+
+        transform: translateY(-8px);
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: translateY(0);
+    }
+}
