@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-page">
+    <% if (!authenticated) { %>
+        <main class="login-page-container">
+            <section class="login-card">
+                <div class="monograma">D&amp;E</div>
+                <h2>Panel de invitaciones</h2>
+                <p>Ingresa la contraseña administrativa.</p>
+
+                <% if (errorMessage) { %>
+                    <div class="server-message error"><%= errorMessage %></div>
+                <% } %>
+
+                <form method="post" action="/admin/login">
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Contraseña"
+                        autocomplete="current-password"
+                        required
+                    >
+                    <button type="submit">Ingresar</button>
+                </form>
+            </section>
+        </main>
+    <% } else { %>
+        <main class="panel-container active">
+            <header class="panel-header">
+                <div class="brand">
+                    <div class="monograma">D&amp;E</div>
+                    <div>
+                        <h1>Dayana &amp; Exio</h1>
+                        <span>Administración de invitaciones</span>
+                    </div>
+                </div>
+                <form method="post" action="/admin/logout">
+                    <button type="submit" class="logout-btn">Cerrar sesión</button>
+                </form>
+            </header>
+
+            <% if (successMessage) { %>
+                <div class="server-message success"><%= successMessage %></div>
+            <% } %>
+
+            <% if (errorMessage) { %>
+                <div class="server-message error"><%= errorMessage %></div>
+            <% } %>
+
+            <section class="form-section">
+                <h2><i class="fas fa-envelope"></i> Crear invitación</h2>
+
+                <form method="post" action="/admin/invitations">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="primary_guest">Invitado principal</label>
+                            <input
+                                id="primary_guest"
+                                name="primary_guest"
+                                maxlength="150"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiration_date">Fecha límite para responder</label>
+                            <input
+                                id="expiration_date"
+                                name="expiration_date"
+                                type="date"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group full-width">
+                            <div class="checkbox-group">
+                                <input id="is_foreign" name="is_foreign" type="checkbox">
+                                <label for="is_foreign">Invitado fuera del país / mostrar transmisión virtual</label>
+                            </div>
+                        </div>
+
+                        <div class="acompanantes-container">
+                            <div class="label-row">
+                                <label for="companions">Acompañantes opcionales</label>
+                            </div>
+                            <textarea
+                                id="companions"
+                                name="companions"
+                                rows="5"
+                                placeholder="Un nombre por línea. Puedes dejarlo vacío."
+                                style="width:100%; padding:12px 16px; border:2px solid #ddd; border-radius:12px; font:inherit; resize:vertical;"
+                            ></textarea>
+                            <p class="companion-help">
+                                La invitación puede crearse únicamente con el invitado principal.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-generar">
+                        <i class="fas fa-plus"></i>
+                        Crear invitación
+                    </button>
+                </form>
+            </section>
+
+            <section class="table-section">
+                <h2><i class="fas fa-list"></i> Invitaciones creadas</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Invitado</th>
+                                <th>Personas</th>
+                                <th>Confirmados</th>
+                                <th>Estado</th>
+                                <th>Expira</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (invitations.length === 0) { %>
+                                <tr>
+                                    <td colspan="6" class="empty-message">
+                                        Todavía no hay invitaciones.
+                                    </td>
+                                </tr>
+                            <% } %>
+
+                            <% invitations.forEach((invitation) => { %>
+                                <tr>
+                                    <td>
+                                        <strong><%= invitation.primary_guest %></strong>
+                                        <% if (invitation.is_foreign) { %>
+                                            <div class="inline-status">Virtual disponible</div>
+                                        <% } %>
+                                    </td>
+                                    <td><%= invitation.companion_count + 1 %></td>
+                                    <td><%= invitation.confirmed_attendees %></td>
+                                    <td>
+                                        <span class="badge badge-<%= invitation.group_status.toLowerCase() %>">
+                                            <%= invitation.group_status %>
+                                        </span>
+                                    </td>
+                                    <td><%= new Date(invitation.expiration_date).toLocaleDateString('es-CO', { timeZone: 'UTC' }) %></td>
+                                    <td class="actions-cell">
+                                        <button
+                                            type="button"
+                                            class="btn-icon copy"
+                                            title="Copiar enlace"
+                                            onclick="copyInvitationLink('<%= invitation.id %>')"
+                                        >
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+
+                                        <a
+                                            class="btn-icon"
+                                            href="/invitation/<%= invitation.id %>"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title="Abrir invitación"
+                                        >
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+
+                                        <form
+                                            method="post"
+                                            action="/admin/invitations/<%= invitation.id %>/delete"
+                                            onsubmit="confirmInvitationDeletion(event, <%- JSON.stringify(invitation.primary_guest) %>)"
+                                        >
+                                            <button
+                                                type="submit"
+                                                class="btn-icon danger btn-delete"
+                                                title="Eliminar"
+                                            >
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    <% } %>
+
+    <script src="/js/admin.js" defer></script>
+</body>
+</html>
