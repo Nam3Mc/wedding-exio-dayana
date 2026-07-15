@@ -1073,6 +1073,14 @@ img {
         center 50% / cover;
 }
 
+.love-photo-2 {
+    position: absolute;
+    inset: -5%;
+    background:
+        url('./../assets/segunda-foto.jpeg')
+        center 50% / cover;
+}
+
 .love-photo-overlay {
     position: absolute;
     inset: 0;
