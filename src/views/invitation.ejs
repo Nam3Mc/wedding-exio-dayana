@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0b3027">
+    <meta name="theme-color" content="#687d67">
+    <meta
+        name="description"
+        content="Invitación a la boda de Exio y Dayana · 8 de enero de 2027"
+    >
     <title><%= title %></title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&family=Parisienne&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Allura&family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Luxurious+Script&family=Montserrat:wght@300;400;500;600&display=swap"
         rel="stylesheet"
     >
     <link
@@ -18,11 +22,27 @@
     >
     <link rel="stylesheet" href="/css/invitation.css">
 </head>
+
 <body
     class="invitation-page"
     data-invitation-id="<%= invitation.id %>"
     data-is-foreign="<%= invitation.is_foreign ? 'true' : 'false' %>"
 >
+    <audio id="weddingAudio" loop preload="auto">
+        <source src="/audio/wedding-song.mp3" type="audio/mpeg">
+    </audio>
+
+    <button
+        class="music-toggle"
+        id="musicToggle"
+        type="button"
+        aria-label="Pausar música"
+        hidden
+    >
+        <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+        <span>Música</span>
+    </button>
+
     <div class="ambient-light ambient-light-one" aria-hidden="true"></div>
     <div class="ambient-light ambient-light-two" aria-hidden="true"></div>
     <div class="petal-field" id="petalField" aria-hidden="true"></div>
@@ -34,22 +54,15 @@
             type="button"
             aria-label="Abrir invitación para <%= invitation.primary_guest %>"
         >
-            <span class="envelope-glow" aria-hidden="true"></span>
-            <span class="envelope-border" aria-hidden="true"></span>
-
-            <span class="envelope-monogram">D<span>&amp;</span>E</span>
-            <span class="envelope-kicker">Una invitación especial para</span>
-            <strong class="envelope-guest"><%= invitation.primary_guest %></strong>
-            <span class="envelope-divider" aria-hidden="true"></span>
-            <span class="envelope-instruction">
-                Toca para descubrirla
-                <i class="fa-solid fa-arrow-down-long" aria-hidden="true"></i>
+            <span class="envelope-touch">
+                Toca el sobre
+                <i class="fa-regular fa-hand-pointer" aria-hidden="true"></i>
             </span>
         </button>
     </div>
 
     <main class="invitation-shell" id="invitationContent">
-        <section class="hero-section" aria-labelledby="coupleNames">
+        <section class="hero-section" aria-labelledby="weddingHeading">
             <div class="hero-photo" aria-hidden="true"></div>
             <div class="hero-overlay" aria-hidden="true"></div>
             <div class="hero-ornament hero-ornament-left" aria-hidden="true"></div>
@@ -57,20 +70,22 @@
 
             <div class="hero-content reveal-on-scroll">
                 <p class="eyebrow">Con la bendición de Dios y nuestras familias</p>
-                <div class="hero-flourish" aria-hidden="true">
-                    <span></span>
-                    <i class="fa-regular fa-gem"></i>
-                    <span></span>
+
+                <div
+                    class="letter-monogram letter-monogram-hero"
+                    aria-label="Exio y Dayana"
+                >
+                    <span class="monogram-letter monogram-letter-e">E</span>
+                    <span class="monogram-letter monogram-letter-d">D</span>
                 </div>
 
-                <h1 class="couple-names" id="coupleNames">
-                    <span>Dayana</span>
-                    <small>&amp;</small>
-                    <span>Exio</span>
+                <h1 class="visually-hidden" id="weddingHeading">
+                    Boda de Exio y Dayana
                 </h1>
 
                 <p class="hero-announcement">Celebramos nuestro amor</p>
-                <time class="hero-date" datetime="2027-01-08">
+
+                <time class="hero-date" datetime="2027-01-08T19:00:00-05:00">
                     <span>08</span>
                     <b>·</b>
                     <span>01</span>
@@ -79,7 +94,11 @@
                 </time>
             </div>
 
-            <a class="scroll-cue" href="#welcome" aria-label="Continuar leyendo la invitación">
+            <a
+                class="scroll-cue"
+                href="#welcome"
+                aria-label="Continuar leyendo la invitación"
+            >
                 <span>Descubre nuestra historia</span>
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </a>
@@ -93,21 +112,22 @@
                 <span class="corner corner-bottom-right" aria-hidden="true"></span>
 
                 <p class="section-kicker">Tenemos el honor de invitarte</p>
+
                 <h2 class="guest-greeting">
                     Querido(a)<br>
                     <span><%= invitation.primary_guest %></span>
                 </h2>
 
                 <p class="welcome-copy">
-                    Hay momentos que cambian la vida para siempre. El nuestro está por llegar,
-                    y sería aún más inolvidable si formas parte de él.
+                    Hay momentos que cambian la vida para siempre. El nuestro está por
+                    llegar, y sería aún más inolvidable si formas parte de él.
                 </p>
 
                 <blockquote class="scripture-quote">
                     <i class="fa-solid fa-quote-left" aria-hidden="true"></i>
                     <p>
-                        Si alguno prevalece contra el que está solo, dos estarán contra él;
-                        y cordón de tres dobleces no se rompe pronto.
+                        Si alguno prevalece contra el que está solo, dos estarán contra
+                        él; y cordón de tres dobleces no se rompe pronto.
                     </p>
                     <cite>Eclesiastés 4:12</cite>
                 </blockquote>
@@ -116,23 +136,29 @@
 
         <section class="guest-list-section">
             <div class="content-width reveal-on-scroll">
-                <p class="section-kicker light">Esta invitación ha sido reservada para</p>
-                <h2 class="section-title light">Nuestros invitados especiales</h2>
+                <p class="section-kicker light">
+                    Esta invitación ha sido reservada para
+                </p>
+                <h2 class="section-title light">Nuestros invitados</h2>
 
                 <div class="guest-roster">
-                    <article class="guest-pill primary-guest-pill">
-                        <span class="guest-icon"><i class="fa-solid fa-crown" aria-hidden="true"></i></span>
+                    <article class="guest-pill">
+                        <span class="guest-icon">
+                            <i class="fa-regular fa-star" aria-hidden="true"></i>
+                        </span>
                         <div>
-                            <small>Invitado principal</small>
+                            <small>Invitado</small>
                             <strong><%= invitation.primary_guest %></strong>
                         </div>
                     </article>
 
                     <% companions.forEach((companion) => { %>
                         <article class="guest-pill">
-                            <span class="guest-icon"><i class="fa-regular fa-star" aria-hidden="true"></i></span>
+                            <span class="guest-icon">
+                                <i class="fa-regular fa-star" aria-hidden="true"></i>
+                            </span>
                             <div>
-                                <small>Acompañante</small>
+                                <small>Invitado</small>
                                 <strong><%= companion.name %></strong>
                             </div>
                         </article>
@@ -141,7 +167,8 @@
 
                 <p class="adult-note">
                     <i class="fa-solid fa-champagne-glasses" aria-hidden="true"></i>
-                    Una velada exclusiva para adultos. Los cupos son personales e intransferibles.
+                    Una velada exclusiva para adultos. Los cupos son personales e
+                    intransferibles.
                 </p>
             </div>
         </section>
@@ -151,10 +178,15 @@
             <div class="countdown-overlay" aria-hidden="true"></div>
 
             <div class="countdown-content content-width reveal-on-scroll">
-                <p class="section-kicker light">La espera también es parte de la historia</p>
+                <p class="section-kicker light">
+                    La espera también es parte de la historia
+                </p>
                 <h2 class="section-title light">Faltan</h2>
 
-                <div class="countdown-grid" aria-label="Cuenta regresiva para la boda">
+                <div
+                    class="countdown-grid"
+                    aria-label="Cuenta regresiva para la boda"
+                >
                     <div class="time-card">
                         <strong id="days">--</strong>
                         <span>Días</span>
@@ -186,20 +218,29 @@
                 <div class="event-grid">
                     <article class="event-card reveal-on-scroll">
                         <span class="event-number">01</span>
-                        <div class="event-icon"><i class="fa-regular fa-calendar" aria-hidden="true"></i></div>
-                        <p class="event-label">Fecha</p>
+                        <div class="event-icon">
+                            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                        </div>
+                        <p class="event-label">Fecha y hora</p>
                         <h3>Viernes</h3>
                         <p class="event-main">8 de enero de 2027</p>
-                        <p class="event-detail">6:00 p. m.</p>
+                        <p class="event-detail">7:00 p. m.</p>
                     </article>
 
                     <article class="event-card event-card-featured reveal-on-scroll">
                         <span class="event-number">02</span>
-                        <div class="event-icon"><i class="fa-solid fa-location-dot" aria-hidden="true"></i></div>
-                        <p class="event-label">Recepción</p>
+                        <div class="event-icon">
+                            <i
+                                class="fa-solid fa-location-dot"
+                                aria-hidden="true"
+                            ></i>
+                        </div>
+                        <p class="event-label">Ceremonia y recepción</p>
                         <h3>La Terraza del Portón</h3>
                         <p class="event-main">Cúcuta, Norte de Santander</p>
-                        <p class="event-detail">Te esperamos con puntualidad</p>
+                        <p class="event-detail">
+                            Te esperamos con puntualidad a las 7:00 p. m.
+                        </p>
 
                         <div class="map-actions">
                             <a
@@ -224,12 +265,19 @@
             </div>
         </section>
 
-        <section class="love-photo-section" aria-label="Fotografía de Dayana y Exio">
+        <section
+            class="love-photo-section"
+            aria-label="Fotografía de Dayana y Exio"
+        >
             <div class="love-photo" aria-hidden="true"></div>
             <div class="love-photo-overlay" aria-hidden="true"></div>
+
             <div class="love-quote reveal-on-scroll">
                 <span class="quote-mark">“</span>
-                <p>Por encima de todo, vístanse de amor, que es el vínculo perfecto.</p>
+                <p>
+                    Por encima de todo, vístanse de amor, que es el vínculo
+                    perfecto.
+                </p>
                 <cite>Colosenses 3:14</cite>
             </div>
         </section>
@@ -237,14 +285,36 @@
         <section class="paper-section dress-section">
             <div class="content-width reveal-on-scroll">
                 <div class="section-heading">
-                    <p class="section-kicker">Elegancia para una noche inolvidable</p>
+                    <p class="section-kicker">
+                        Elegancia para una noche inolvidable
+                    </p>
                     <h2 class="section-title">Código de vestimenta</h2>
                     <span class="dress-code-badge">Formal elegante</span>
                 </div>
 
+                <div class="dress-guidelines">
+                    <article class="dress-guideline-card">
+                        <span class="dress-guideline-icon">
+                            <i class="fa-solid fa-person-dress" aria-hidden="true"></i>
+                        </span>
+                        <p class="event-label">Mujeres</p>
+                        <h3>Vestido largo</h3>
+                        <p>Elegante y sin escote.</p>
+                    </article>
+
+                    <article class="dress-guideline-card">
+                        <span class="dress-guideline-icon">
+                            <i class="fa-solid fa-user-tie" aria-hidden="true"></i>
+                        </span>
+                        <p class="event-label">Hombres</p>
+                        <h3>Traje formal</h3>
+                        <p>Traje completo para la ocasión.</p>
+                    </article>
+                </div>
+
                 <p class="dress-copy">
-                    Queremos que te sientas espectacular. Respetuosamente, reservamos
-                    los siguientes tonos para la novia y su cortejo.
+                    Respetuosamente, reservamos los siguientes tonos para la novia
+                    y su cortejo.
                 </p>
 
                 <div class="reserved-colors" aria-label="Colores reservados">
@@ -268,19 +338,39 @@
             </div>
         </section>
 
+        <section class="gift-section">
+            <div class="gift-card content-width reveal-on-scroll">
+                <span class="gift-icon">
+                    <i class="fa-regular fa-envelope-open" aria-hidden="true"></i>
+                </span>
+                <p class="section-kicker light">Tu presencia es nuestro mejor regalo</p>
+                <h2>Lluvia de sobres</h2>
+                <p>
+                    Compartir este día contigo es lo más importante. Si deseas
+                    brindarnos un presente, recibiremos con gratitud tu detalle en
+                    nuestra lluvia de sobres.
+                </p>
+            </div>
+        </section>
+
         <% if (invitation.is_foreign) { %>
             <section class="virtual-note-section">
                 <div class="content-width reveal-on-scroll">
                     <div class="virtual-note-card">
                         <span class="virtual-note-icon">
-                            <i class="fa-solid fa-earth-americas" aria-hidden="true"></i>
+                            <i
+                                class="fa-solid fa-earth-americas"
+                                aria-hidden="true"
+                            ></i>
                         </span>
                         <div>
-                            <p class="section-kicker light">La distancia no nos separa</p>
+                            <p class="section-kicker light">
+                                La distancia no nos separa
+                            </p>
                             <h2>También podrás acompañarnos virtualmente</h2>
                             <p>
-                                Al confirmar encontrarás la opción para conectarte a la transmisión
-                                desde cualquier lugar del mundo.
+                                Al confirmar encontrarás la opción para conectarte
+                                a la transmisión desde cualquier lugar del mundo.
                             </p>
                         </div>
                     </div>
@@ -290,31 +380,60 @@
 
         <section class="response-section" id="responseSection">
             <div class="response-glow" aria-hidden="true"></div>
+
             <div class="content-width response-content reveal-on-scroll">
-                <p class="section-kicker light">Tu presencia es nuestro mejor regalo</p>
+                <p class="section-kicker light">
+                    Tu presencia hará este día más especial
+                </p>
                 <h2 class="response-title">¿Nos acompañas?</h2>
                 <p class="response-copy">
                     Confirma tu asistencia antes del
-                    <strong><%= new Date(invitation.expiration_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) %></strong>.
+                    <strong>
+                        <%= new Date(invitation.expiration_date).toLocaleDateString(
+                            'es-CO',
+                            {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                                timeZone: 'UTC'
+                            }
+                        ) %>
+                    </strong>.
                 </p>
 
                 <% if (successMessage) { %>
-                    <div class="feedback-banner feedback-success" role="status">
-                        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    <div
+                        class="feedback-banner feedback-success"
+                        role="status"
+                    >
+                        <i
+                            class="fa-solid fa-circle-check"
+                            aria-hidden="true"
+                        ></i>
                         <span><%= successMessage %></span>
                     </div>
                 <% } %>
 
                 <% if (errorMessage) { %>
                     <div class="feedback-banner feedback-error" role="alert">
-                        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                        <i
+                            class="fa-solid fa-circle-exclamation"
+                            aria-hidden="true"
+                        ></i>
                         <span><%= errorMessage %></span>
                     </div>
                 <% } %>
 
                 <% if (invitation.group_status === 'PENDING') { %>
-                    <div class="response-actions" aria-label="Responder invitación">
-                        <button class="response-button response-confirm" id="openConfirmationModal" type="button">
+                    <div
+                        class="response-actions"
+                        aria-label="Responder invitación"
+                    >
+                        <button
+                            class="response-button response-confirm"
+                            id="openConfirmationModal"
+                            type="button"
+                        >
                             <span class="response-button-icon">
                                 <i class="fa-solid fa-heart" aria-hidden="true"></i>
                             </span>
@@ -322,7 +441,10 @@
                                 <strong>Confirmar</strong>
                                 <small>Sí, compartiré este día con ustedes</small>
                             </span>
-                            <i class="fa-solid fa-arrow-right-long response-arrow" aria-hidden="true"></i>
+                            <i
+                                class="fa-solid fa-arrow-right-long response-arrow"
+                                aria-hidden="true"
+                            ></i>
                         </button>
 
                         <form
@@ -330,16 +452,31 @@
                             action="/invitation/<%= invitation.id %>/respond"
                             id="declineForm"
                         >
-                            <input type="hidden" name="status" value="REJECTED">
-                            <button class="response-button response-decline" type="submit">
+                            <input
+                                type="hidden"
+                                name="status"
+                                value="REJECTED"
+                            >
+                            <button
+                                class="response-button response-decline"
+                                type="submit"
+                            >
                                 <span class="response-button-icon">
-                                    <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                                    <i
+                                        class="fa-regular fa-envelope"
+                                        aria-hidden="true"
+                                    ></i>
                                 </span>
                                 <span>
                                     <strong>No podré asistir</strong>
-                                    <small>Con cariño, les enviaré mis mejores deseos</small>
+                                    <small>
+                                        Con cariño, les enviaré mis mejores deseos
+                                    </small>
                                 </span>
-                                <i class="fa-solid fa-arrow-right-long response-arrow" aria-hidden="true"></i>
+                                <i
+                                    class="fa-solid fa-arrow-right-long response-arrow"
+                                    aria-hidden="true"
+                                ></i>
                             </button>
                         </form>
                     </div>
@@ -347,7 +484,10 @@
                     <div class="response-state-card">
                         <i class="fa-regular fa-clock" aria-hidden="true"></i>
                         <h3>El plazo de confirmación terminó</h3>
-                        <p>Comunícate directamente con los novios para consultar disponibilidad.</p>
+                        <p>
+                            Comunícate directamente con los novios para consultar
+                            disponibilidad.
+                        </p>
                     </div>
                 <% } else { %>
                     <% const responseLabels = {
@@ -355,20 +495,40 @@
                         VIRTUAL: 'Asistencia virtual confirmada',
                         REJECTED: 'No podrá asistir'
                     }; %>
-                    <div class="response-state-card response-state-complete">
-                        <i class="fa-solid fa-heart-circle-check" aria-hidden="true"></i>
+
+                    <div
+                        class="response-state-card response-state-complete"
+                    >
+                        <i
+                            class="fa-solid fa-heart-circle-check"
+                            aria-hidden="true"
+                        ></i>
                         <h3>Gracias por responder</h3>
-                        <p><%= responseLabels[invitation.group_status] || invitation.group_status %></p>
+                        <p>
+                            <%= responseLabels[invitation.group_status]
+                                || invitation.group_status %>
+                        </p>
                     </div>
                 <% } %>
 
-                <div class="closing-monogram" aria-hidden="true">D<span>&amp;</span>E</div>
+                <div
+                    class="letter-monogram letter-monogram-closing"
+                    aria-hidden="true"
+                >
+                    <span class="monogram-letter monogram-letter-e">E</span>
+                    <span class="monogram-letter monogram-letter-d">D</span>
+                </div>
+
             </div>
         </section>
     </main>
 
     <% if (invitation.group_status === 'PENDING') { %>
-        <div class="modal-backdrop" id="confirmationModal" aria-hidden="true">
+        <div
+            class="modal-backdrop"
+            id="confirmationModal"
+            aria-hidden="true"
+        >
             <section
                 class="attendance-modal"
                 role="dialog"
@@ -376,15 +536,27 @@
                 aria-labelledby="attendanceModalTitle"
                 tabindex="-1"
             >
-                <button class="modal-close" id="closeConfirmationModal" type="button" aria-label="Cerrar modal">
+                <button
+                    class="modal-close"
+                    id="closeConfirmationModal"
+                    type="button"
+                    aria-label="Cerrar modal"
+                >
                     <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 </button>
 
                 <div class="modal-header">
-                    <span class="modal-icon"><i class="fa-solid fa-heart" aria-hidden="true"></i></span>
+                    <span class="modal-icon">
+                        <i class="fa-solid fa-heart" aria-hidden="true"></i>
+                    </span>
                     <p class="section-kicker">Confirma tu asistencia</p>
-                    <h2 id="attendanceModalTitle">¿Quiénes nos acompañarán?</h2>
-                    <p>Selecciona a cada persona que formará parte de esta celebración.</p>
+                    <h2 id="attendanceModalTitle">
+                        ¿Quiénes nos acompañarán?
+                    </h2>
+                    <p>
+                        Selecciona a cada invitado que formará parte de esta
+                        celebración.
+                    </p>
                 </div>
 
                 <form
@@ -397,45 +569,141 @@
                     <% if (invitation.is_foreign) { %>
                         <fieldset class="attendance-mode">
                             <legend>¿Cómo nos acompañarán?</legend>
+
                             <label class="mode-option">
-                                <input type="radio" name="status" value="CONFIRMED" checked>
+                                <input
+                                    type="radio"
+                                    name="status"
+                                    value="CONFIRMED"
+                                    checked
+                                >
                                 <span class="mode-card">
-                                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                                    <i
+                                        class="fa-solid fa-location-dot"
+                                        aria-hidden="true"
+                                    ></i>
                                     <span>
                                         <strong>Presencialmente</strong>
                                         <small>Estaremos en la celebración</small>
                                     </span>
                                 </span>
                             </label>
+
                             <label class="mode-option">
-                                <input type="radio" name="status" value="VIRTUAL">
+                                <input
+                                    type="radio"
+                                    name="status"
+                                    value="VIRTUAL"
+                                >
                                 <span class="mode-card">
-                                    <i class="fa-solid fa-video" aria-hidden="true"></i>
+                                    <i
+                                        class="fa-solid fa-video"
+                                        aria-hidden="true"
+                                    ></i>
                                     <span>
                                         <strong>Asistiré virtualmente</strong>
-                                        <small>Nos conectaremos a la transmisión</small>
+                                        <small>
+                                            Nos conectaremos a la transmisión
+                                        </small>
                                     </span>
                                 </span>
                             </label>
                         </fieldset>
+
+                        <aside
+                            class="virtual-gift-panel"
+                            id="virtualGiftPanel"
+                            aria-hidden="true"
+                            hidden
+                        >
+                            <span class="virtual-gift-icon">
+                                <i
+                                    class="fa-solid fa-gift"
+                                    aria-hidden="true"
+                                ></i>
+                            </span>
+
+                            <div>
+                                <p class="virtual-gift-kicker">
+                                    Con cariño desde la distancia
+                                </p>
+                                <h3>Gracias por acompañarnos virtualmente</h3>
+                                <p class="virtual-gift-copy">
+                                    Tu presencia significa mucho para nosotros.
+                                    Si deseas brindarnos algún presente, puedes
+                                    hacerlo a través de los siguientes datos:
+                                </p>
+
+                                <dl class="bank-details">
+                                    <div>
+                                        <dt>Cuenta</dt>
+                                        <dd>111800551541</dd>
+                                        <button
+                                            class="copy-detail-button"
+                                            type="button"
+                                            data-copy-value="111800551541"
+                                            aria-label="Copiar número de cuenta"
+                                        >
+                                            <i
+                                                class="fa-regular fa-copy"
+                                                aria-hidden="true"
+                                            ></i>
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <dt>Tipo</dt>
+                                        <dd>Ahorros</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Banco</dt>
+                                        <dd>Falabella</dd>
+                                    </div>
+                                    <div>
+                                        <dt>Llave</dt>
+                                        <dd>@BFDG004969</dd>
+                                        <button
+                                            class="copy-detail-button"
+                                            type="button"
+                                            data-copy-value="@BFDG004969"
+                                            aria-label="Copiar llave bancaria"
+                                        >
+                                            <i
+                                                class="fa-regular fa-copy"
+                                                aria-hidden="true"
+                                            ></i>
+                                        </button>
+                                    </div>
+                                </dl>
+                            </div>
+                        </aside>
                     <% } else { %>
-                        <input type="hidden" name="status" value="CONFIRMED">
+                        <input
+                            type="hidden"
+                            name="status"
+                            value="CONFIRMED"
+                        >
                     <% } %>
 
                     <fieldset class="attendee-selection">
-                        <legend>Personas confirmadas</legend>
+                        <legend>Invitados confirmados</legend>
 
-                        <label class="attendee-option attendee-primary">
+                        <label class="attendee-option">
                             <input type="checkbox" checked disabled>
-                            <span class="custom-checkbox" aria-hidden="true">
+                            <span
+                                class="custom-checkbox"
+                                aria-hidden="true"
+                            >
                                 <i class="fa-solid fa-check"></i>
                             </span>
                             <span class="attendee-avatar">
-                                <i class="fa-solid fa-crown" aria-hidden="true"></i>
+                                <i
+                                    class="fa-regular fa-user"
+                                    aria-hidden="true"
+                                ></i>
                             </span>
                             <span class="attendee-info">
                                 <strong><%= invitation.primary_guest %></strong>
-                                <small>Invitado principal · Siempre incluido</small>
+                                <small>Invitado · Siempre incluido</small>
                             </span>
                         </label>
 
@@ -448,44 +716,220 @@
                                     value="<%= companion.id %>"
                                     checked
                                 >
-                                <span class="custom-checkbox" aria-hidden="true">
+                                <span
+                                    class="custom-checkbox"
+                                    aria-hidden="true"
+                                >
                                     <i class="fa-solid fa-check"></i>
                                 </span>
                                 <span class="attendee-avatar">
-                                    <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                    <i
+                                        class="fa-regular fa-user"
+                                        aria-hidden="true"
+                                    ></i>
                                 </span>
                                 <span class="attendee-info">
                                     <strong><%= companion.name %></strong>
-                                    <small>Acompañante</small>
+                                    <small>Invitado</small>
                                 </span>
                             </label>
                         <% }) %>
                     </fieldset>
 
-                    <div class="attendance-summary" aria-live="polite">
+                    <div
+                        class="attendance-summary"
+                        aria-live="polite"
+                    >
                         <i class="fa-solid fa-users" aria-hidden="true"></i>
                         <span>
-                            <strong id="selectedAttendeeCount"><%= companions.length + 1 %></strong>
+                            <strong id="selectedAttendeeCount">
+                                <%= companions.length + 1 %>
+                            </strong>
                             <span id="selectedAttendeeLabel">
-                                <%= companions.length === 0 ? 'persona confirmada' : 'personas confirmadas' %>
+                                <%= companions.length === 0
+                                    ? 'persona confirmada'
+                                    : 'personas confirmadas' %>
                             </span>
                         </span>
                     </div>
 
+                    <button
+                        class="calendar-button"
+                        id="addToCalendarButton"
+                        type="button"
+                    >
+                        <i
+                            class="fa-regular fa-calendar-plus"
+                            aria-hidden="true"
+                        ></i>
+                        Agregar a mi calendario
+                    </button>
+
                     <div class="modal-actions">
-                        <button class="modal-secondary-button" id="cancelConfirmation" type="button">
+                        <button
+                            class="modal-secondary-button"
+                            id="cancelConfirmation"
+                            type="button"
+                        >
                             Volver
                         </button>
-                        <button class="modal-primary-button" id="submitConfirmation" type="submit">
+                        <button
+                            class="modal-primary-button"
+                            id="submitConfirmation"
+                            type="submit"
+                        >
                             <span>Enviar confirmación</span>
-                            <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                            <i
+                                class="fa-solid fa-paper-plane"
+                                aria-hidden="true"
+                            ></i>
                         </button>
                     </div>
+
+                    <p
+                        class="copy-feedback"
+                        id="copyFeedback"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
                 </form>
             </section>
         </div>
     <% } %>
 
     <script src="/js/invitation.js" defer></script>
+
+    <script>
+        (() => {
+            const attendanceForm = document.getElementById(
+                'attendanceForm'
+            );
+            const virtualGiftPanel = document.getElementById(
+                'virtualGiftPanel'
+            );
+            const copyFeedback = document.getElementById(
+                'copyFeedback'
+            );
+
+            if (!attendanceForm || !virtualGiftPanel) {
+                return;
+            }
+
+            const attendanceModeInputs = attendanceForm.querySelectorAll(
+                'input[name="status"]'
+            );
+
+            function getSelectedAttendanceMode() {
+                return attendanceForm.querySelector(
+                    'input[name="status"]:checked'
+                )?.value || 'CONFIRMED';
+            }
+
+            function updateVirtualGiftPanel() {
+                const isVirtual =
+                    getSelectedAttendanceMode() === 'VIRTUAL';
+
+                virtualGiftPanel.hidden = !isVirtual;
+                virtualGiftPanel.classList.toggle(
+                    'is-visible',
+                    isVirtual
+                );
+                virtualGiftPanel.setAttribute(
+                    'aria-hidden',
+                    String(!isVirtual)
+                );
+            }
+
+            async function copyToClipboard(value) {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(value);
+                    return;
+                }
+
+                const temporaryInput = document.createElement(
+                    'textarea'
+                );
+
+                temporaryInput.value = value;
+                temporaryInput.setAttribute(
+                    'readonly',
+                    ''
+                );
+                temporaryInput.style.position = 'fixed';
+                temporaryInput.style.opacity = '0';
+
+                document.body.appendChild(temporaryInput);
+                temporaryInput.select();
+
+                const copied = document.execCommand('copy');
+                temporaryInput.remove();
+
+                if (!copied) {
+                    throw new Error(
+                        'No se pudo copiar el dato'
+                    );
+                }
+            }
+
+            attendanceModeInputs.forEach((input) => {
+                input.addEventListener(
+                    'change',
+                    updateVirtualGiftPanel
+                );
+            });
+
+            document.querySelectorAll(
+                '.copy-detail-button'
+            ).forEach((button) => {
+                button.addEventListener(
+                    'click',
+                    async () => {
+                        const value =
+                            button.dataset.copyValue || '';
+
+                        if (!value) {
+                            return;
+                        }
+
+                        try {
+                            await copyToClipboard(value);
+
+                            if (copyFeedback) {
+                                copyFeedback.textContent =
+                                    'Dato bancario copiado correctamente.';
+                            }
+
+                            const icon = button.querySelector('i');
+
+                            if (icon) {
+                                icon.classList.remove(
+                                    'fa-copy'
+                                );
+                                icon.classList.add(
+                                    'fa-check'
+                                );
+
+                                window.setTimeout(() => {
+                                    icon.classList.remove(
+                                        'fa-check'
+                                    );
+                                    icon.classList.add(
+                                        'fa-copy'
+                                    );
+                                }, 1500);
+                            }
+                        } catch {
+                            if (copyFeedback) {
+                                copyFeedback.textContent =
+                                    `Copia manualmente: ${value}`;
+                            }
+                        }
+                    }
+                );
+            });
+
+            updateVirtualGiftPanel();
+        })();
+    </script>
 </body>
 </html>
