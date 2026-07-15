@@ -1,11 +1,10 @@
 {
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "framework": "express",
+    "installCommand": "corepack pnpm install --no-frozen-lockfile",
     "functions": {
         "server.js": {
-            "includeFiles": [
-                "src/views/**"
-            ]
+            "includeFiles": "src/views/**"
         }
     }
 }
