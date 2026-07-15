@@ -240,7 +240,7 @@ img {
             rgba(214, 221, 208, 0.28),
             transparent 42%
         ),
-        var(--olive-950);
+        var(--champagne-300);
     transition:
         visibility 0s linear 0.9s,
         opacity 0.9s ease;
@@ -1291,7 +1291,8 @@ img {
     padding: 42px;
     color: var(--ivory-50);
     border: 1px solid rgba(223, 199, 168, 0.38);
-    background: rgba(255, 255, 255, 0.05);
+    /* background: rgba(255, 255, 255, 0.05); */
+    background-color: #6c826c;
 }
 
 .virtual-note-icon {
