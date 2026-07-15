@@ -1,40 +1,31 @@
-# Wedding Exio Dayana — Vercel final
+# Wedding Exio Dayana
 
-## Estructura obligatoria
+Aplicación Express con estructura inspirada en `Nam3Mc/cse340`:
 
-No debe existir una carpeta `/api` en este proyecto. Vercel reserva `/api` para Vercel Functions. Los módulos internos de Express están en `/server`.
+- `server.js`: servidor único.
+- `src/models`: conexión y consultas PostgreSQL.
+- `src/controllers`: lógica de las páginas.
+- `src/routes`: rutas Express.
+- `src/views`: vistas EJS.
+- `public`: CSS y JavaScript estático.
 
-```text
-/
-├── server/
-│   ├── routes/
-│   │   ├── admin.js
-│   │   └── public.js
-│   ├── auth.js
-│   └── db.js
-├── public/
-│   ├── index.html
-│   ├── admin.html
-│   └── invitation.html
-├── index.js
-├── package.json
-├── package-lock.json
-├── vercel.json
-└── schema-neon.sql
-```
-
-## Variables en Vercel
+## Variables de entorno
 
 - `DATABASE_URL`
-- `JWT_SECRET`
 - `ADMIN_PASSWORD`
-- `ADMIN_SESSION_HOURS` (opcional, por defecto 8)
-- `DB_POOL_MAX` (opcional, por defecto 5)
 
-No agregues `PORT` ni `NODE_ENV` en Vercel.
+## Base de datos
 
-## Pruebas después del deployment
+Ejecuta `src/setup.sql` en el SQL Editor de Neon.
 
-- `/` debe mostrar el panel.
-- `/api/health` debe responder JSON.
-- `/api/auth/login` debe aceptar POST.
+## Desarrollo
+
+```bash
+npm install
+npm run dev
+```
+
+## Vercel
+
+No configures un Output Directory ni un Build Command. Usa Node.js 24.x.
+La raíz `/` abre directamente el panel. Ya no existe `/api/auth/login`.

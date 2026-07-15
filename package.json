@@ -1,23 +1,24 @@
 {
     "name": "wedding-exio-dayana",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "private": true,
     "type": "module",
-    "description": "Sistema de invitaciones para la boda de Dayana y Exio",
-    "main": "index.js",
+    "description": "Sistema de invitaciones de boda con Express, EJS, PostgreSQL y Neon",
+    "main": "server.js",
     "engines": {
         "node": "24.x"
     },
     "scripts": {
-        "dev": "nodemon index.js",
-        "start": "node index.js",
-        "check": "node --check index.js && node --check api/db.js && node --check api/auth.js && node --check api/routes/admin.js && node --check api/routes/public.js"
+        "dev": "nodemon server.js",
+        "start": "node server.js",
+        "check": "node --check server.js"
     },
     "dependencies": {
-        "dotenv": "^16.3.1",
-        "express": "^4.18.2",
-        "jsonwebtoken": "^9.0.2",
-        "pg": "^8.11.3"
+        "cookie-parser": "^1.4.7",
+        "dotenv": "^17.2.3",
+        "ejs": "^6.0.1",
+        "express": "^5.2.1",
+        "pg": "^8.22.0"
     },
     "devDependencies": {
         "nodemon": "^3.1.14"
